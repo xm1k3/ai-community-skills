@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ai-community-skills</title>
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
-<meta name="description" content="One local catalog for community Agent Skills: aggregate, audit with static risk analysis, and install into Claude Code or Codex.">
+<meta name="description" content="All the community Agent Skills scattered across GitHub, in one local catalog. Search, browse, and install into Claude Code, Codex, or Grok, with a risk check on every skill.">
 <style>
   :root {
     --bg: #fafafa;
@@ -172,8 +172,8 @@
     </header>
 
     <section class="hero">
-      <h1>Community Agent Skills,<br>audited before you install them.</h1>
-      <p class="lead">One local catalog built from public git repositories. Every skill goes through static risk analysis, and you install only the ones you trust into Claude Code or Codex.</p>
+      <h1>All the community Agent Skills,<br>in one place.</h1>
+      <p class="lead">Skills for Claude Code, Codex, and Grok are scattered across dozens of GitHub repositories. ai-community-skills pulls them into one local catalog you can search, browse, and install from, with a risk check on every skill as a bonus.</p>
       <div class="install"><span class="dollar">$</span>npm install -g ai-community-skills</div>
       <div class="cta">
         <a class="btn primary" href="#cli">Get started</a>
@@ -184,7 +184,7 @@
 
     <section id="features">
       <h2>What it does</h2>
-      <p class="sub">A catalog, an auditor, and an installer for SKILL.md based Agent Skills, all local and all static.</p>
+      <p class="sub">One catalog for SKILL.md based Agent Skills from every source you care about, plus the tools to pick the right ones.</p>
       <div class="features">
         <div class="feature">
           <h3>Aggregate any repository</h3>
@@ -196,7 +196,7 @@
         </div>
         <div class="feature">
           <h3>Install where you work</h3>
-          <p>Claude Code personal or project scope, Codex, or a zip for claude.ai. A risk summary and a confirmation come first, and drift is reported after every sync.</p>
+          <p>Claude Code personal or project scope, Codex, Grok Build, or a zip for claude.ai. A risk summary and a confirmation come first, and drift is reported after every sync.</p>
         </div>
         <div class="feature">
           <h3>Browse and search</h3>
@@ -274,6 +274,7 @@ acs info frontend-design
 <span class="c"># install after reviewing the risk summary</span>
 acs install frontend-design
 acs install frontend-design --target codex
+acs install frontend-design --target grok
 
 <span class="c"># or do it all from the browser</span>
 acs ui</pre>

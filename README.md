@@ -5,7 +5,7 @@
 <h1 align="center">ai-community-skills</h1>
 
 <p align="center">
-  One local catalog for community Agent Skills: aggregate them from public git repositories, run static risk analysis on every skill, and install the ones you trust into Claude Code or Codex.
+  All the community Agent Skills scattered across GitHub, in one local catalog. Search them, browse them, and install them into Claude Code, Codex, or Grok, with a risk check on every skill as a bonus.
 </p>
 
 <p align="center">
@@ -70,12 +70,13 @@ $ acs search "frontend design"
 $ acs info frontend-design
 ```
 
-Install into Claude Code (personal scope, `~/.claude/skills/<name>`), into the current project, or into Codex:
+Install into Claude Code (personal scope, `~/.claude/skills/<name>`), into the current project, into Codex, or into Grok Build:
 
 ```
 $ acs install frontend-design
 $ acs install frontend-design --project
 $ acs install frontend-design --target codex
+$ acs install frontend-design --target grok
 $ acs install frontend-design --target web
 ```
 
