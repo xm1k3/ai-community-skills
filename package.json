@@ -1,0 +1,55 @@
+{
+  "name": "ai-community-skills",
+  "version": "0.1.0",
+  "description": "Aggregate, analyze, and install community Agent Skills from public git repositories",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "ai-community-skills": "dist/cli.js",
+    "acs": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "agent-skills",
+    "skills",
+    "claude-code",
+    "codex",
+    "cli",
+    "security"
+  ],
+  "scripts": {
+    "build": "tsup && vite build --config ui/vite.config.ts",
+    "build:cli": "tsup",
+    "build:ui": "vite build --config ui/vite.config.ts",
+    "dev:ui": "vite --config ui/vite.config.ts",
+    "typecheck": "tsc --noEmit && vue-tsc --noEmit -p ui/tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@primeuix/themes": "^1.2.5",
+    "@types/markdown-it": "^14.2.0",
+    "@types/node": "^20.17.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "chart.js": "^4.5.1",
+    "commander": "^13.1.0",
+    "highlight.js": "^11.12.0",
+    "markdown-it": "^14.3.1",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.5.5",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.4.3",
+    "vitest": "^3.0.0",
+    "vue": "^3.5.42",
+    "vue-router": "^4.6.4",
+    "vue-tsc": "^2.2.12"
+  }
+}
