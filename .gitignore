@@ -149,4 +149,4 @@ dist
 .acs-test
 acs-exports
 awesome-list.md
-homepage-assets/
+.DS_Store
