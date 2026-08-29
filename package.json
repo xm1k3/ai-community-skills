@@ -51,5 +51,14 @@
     "vue": "^3.5.42",
     "vue-router": "^4.6.4",
     "vue-tsc": "^2.2.12"
+  },
+  "author": "xm1k3",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xm1k3/ai-community-skills.git"
+  },
+  "homepage": "https://github.com/xm1k3/ai-community-skills#readme",
+  "bugs": {
+    "url": "https://github.com/xm1k3/ai-community-skills/issues"
   }
 }
