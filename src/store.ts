@@ -41,16 +41,23 @@ function normalizeSource(raw: unknown, index: number): SourceConfig {
   return { name: source.name, repo: source.repo, enabled: source.enabled !== false, ...(trust !== undefined ? { trust } : {}) };
 }
 
+export function parseConfigData(data: unknown): Config {
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Config must be a JSON object");
+  const raw = data as Partial<Config>;
+  if (!Array.isArray(raw.sources)) throw new Error('Config is missing the "sources" array');
+  const sources = raw.sources.map(normalizeSource);
+  const embedding = raw.embedding && typeof raw.embedding === "object" && typeof raw.embedding.provider === "string"
+    ? raw.embedding
+    : null;
+  return { sources, embedding, dedupeAfterSync: raw.dedupeAfterSync === true };
+}
+
 export function loadConfig(): Config {
   if (!configExists()) {
     throw new Error(`No config found at ${configPath()}. Run "acs init" first.`);
   }
   const raw = readJsonFile<Partial<Config>>(configPath(), {});
-  const sources = Array.isArray(raw.sources) ? raw.sources.map(normalizeSource) : [];
-  const embedding = raw.embedding && typeof raw.embedding === "object" && typeof raw.embedding.provider === "string"
-    ? raw.embedding
-    : null;
-  return { sources, embedding, dedupeAfterSync: raw.dedupeAfterSync === true };
+  return parseConfigData({ sources: [], ...raw });
 }
 
 export function saveConfig(config: Config): void {

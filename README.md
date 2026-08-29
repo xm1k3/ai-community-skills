@@ -36,7 +36,7 @@ The binary is available as `ai-community-skills` and as the short alias `acs`. N
 
 | Command | Description |
 | --- | --- |
-| `acs init` | Write the default config with a starter set of community sources. |
+| `acs init` | Download the curated source list and write `~/.acs/config.json`. `--offline` uses the bundled copy. |
 | `acs sync` | Clone or update every enabled source and rebuild the index. |
 | `acs list` | List indexed skills with filters for category, risk, source, and findings. |
 | `acs search <query>` | Search skills by name, description, category, and tags. |
@@ -108,9 +108,21 @@ Every skill is analyzed statically, nothing found in a skill is ever executed. E
 
 Duplicates across sources are detected with a normalized content hash that ignores catalog metadata and whitespace, and the copy from the most trusted source is kept.
 
+## Sources
+
+The curated list of community repositories lives in [`config.json`](config.json) at the root of this repository. `acs init` downloads the latest version of that file and writes it to `~/.acs/config.json`, so a fresh install always starts from the current list (pass `--offline` to use the copy bundled with the package instead).
+
+Know a good repository of skills that is missing? Open a pull request that adds it to `config.json`:
+
+```json
+{ "name": "owner-repo", "repo": "https://github.com/owner/repo", "enabled": true }
+```
+
+`name` is the folder the repository is cloned into and the label used everywhere in the catalog, `repo` accepts https URLs, `owner/name` GitHub shorthand, ssh URLs, or local `file://` URLs. `trust` (0-100, default 50) says how much the copy from that repository should win when the same skill exists in more than one source.
+
 ## Config
 
-`~/.acs/config.json`:
+Your local `~/.acs/config.json` is yours to edit, from the file or from the Sources page of the dashboard:
 
 ```json
 {
@@ -118,11 +130,9 @@ Duplicates across sources are detected with a normalized content hash that ignor
     { "name": "anthropic-skills", "repo": "https://github.com/anthropics/skills", "enabled": true, "trust": 100 },
     ...
   ],
-  "dedupeAfterSync": false
+  "dedupeAfterSync": true
 }
 ```
-
-`repo` accepts https URLs, `owner/name` GitHub shorthand, ssh URLs, or local `file://` URLs. `trust` (0-100, default 50) decides which copy survives when the same skill exists in more than one source. Sources can also be added, edited, and synced from the dashboard.
 
 All data lives under `~/.acs/` (config, index, install records, favorites and groups, cloned sources). Set `ACS_HOME` to use a different directory.
 
