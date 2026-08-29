@@ -34,7 +34,7 @@ All analysis is static. No script or code found in a skill is ever executed by t
 | Command | Description |
 | --- | --- |
 | `acs init` | Write the default config. `--force` overwrites, `--dry-run` prints without writing. |
-| `acs sync` | Clone or pull enabled sources and rebuild the index. `--source <name...>`, `--dry-run`, `--no-github`, `--no-embeddings`, `--verbose`, `--dedupe` (also enabled by `dedupeAfterSync: true` in config.json). |
+| `acs sync` | Clone or pull enabled sources and rebuild the index. `--source <name...>`, `--dry-run`, `--no-github`, `--verbose`, `--dedupe` (also enabled by `dedupeAfterSync: true` in config.json). |
 | `acs list` | List indexed skills. Filters: `--category`, `--risk low,medium,high`, `--tool claude-code\|codex\|web`, `--source`, `--has-scripts`, `--network`, `--destructive`, `--json`. |
 | `acs search <query>` | Fuzzy search over name and description. `--limit`, `--json`. |
 | `acs validate [skill]` | Check frontmatter, referenced paths, and description length. Accepts a skill name or a directory path. Never modifies files. |
@@ -94,10 +94,9 @@ On every `acs sync`, the content hash of each indexed skill is compared with the
 
 ```
 ~/.acs/
-  config.json       sources and optional embedding provider
+  config.json       sources, their trust levels, and options
   index.json        one entry per indexed skill
   installed.json    install records with content hashes
-  embeddings.json   description embeddings keyed by source and skill name
   collections.json  favorites and groups
   sources/<name>/   git clones of each source
 ```
@@ -109,13 +108,12 @@ Set `ACS_HOME` to use a different data directory.
 ```json
 {
   "sources": [
-    { "name": "anthropic-skills", "repo": "https://github.com/anthropics/skills", "enabled": true }
-  ],
-  "embedding": null
+    { "name": "anthropic-skills", "repo": "https://github.com/anthropics/skills", "enabled": true, "trust": 100 }
+  ]
 }
 ```
 
-`repo` accepts https URLs, `owner/name` GitHub shorthand, ssh URLs, or local `file://` URLs.
+`repo` accepts https URLs, `owner/name` GitHub shorthand, ssh URLs, or local `file://` URLs. `trust` (0-100, default 50) says how much you trust the repository: when the same skill exists in more than one source, dedupe keeps the copy from the most trusted one, then falls back to config order and the shortest path.
 
 ## Web dashboard
 
@@ -125,38 +123,20 @@ Pages:
 
 | Route | Content |
 | --- | --- |
-| `/` | Dashboard: index size, installed skills with available updates, library and duplicate counts, browse-by-tag chips, risk distribution, finding counts, top categories, skills that need review, recently updated skills. |
+| `/` | Dashboard: index size, installed skills with available updates, library and duplicate counts, browse-by-tag chips, risk distribution, finding counts, top categories, top authors ranked by a per-skill quality score, recently updated skills. |
 | `/browse` | Full index with search, risk, source, category, tag, path prefix, and finding filters, sorting, and pagination (25/50/100 per page). Rows can be multi-selected for bulk install, bulk favorite, or adding to a group. Duplicate copies of a skill (same normalized content) are collapsed into one row. Every filter lives in the URL, so a filtered view can be bookmarked or shared. |
 | `/skill/<source>/<path>` | Skill detail with clickable breadcrumbs that collapse when space runs out. Tabs: Overview (SKILL.md rendered as markdown with syntax-highlighted code blocks), Files (folder tree with a Preview/Code toggle for markdown), Details (search score breakdown, risk reasons, validation issues, source reputation, upstream metadata, installed copies), Findings (every risk finding sorted by severity, filterable by category, with a clickable `file:line` that opens the file at the highlighted line), and Frontmatter. Add `?q=<query>` to keep the score explanation. |
 | `/favorites` | Skills marked with the heart. |
 | `/groups` | Named lists of skills that can be installed together, exported as JSON, and imported on another machine. Stored in `~/.acs/collections.json`. |
 | `/installed` | Everything installed through acs with target, scope, path, and upstream drift. Uninstall asks for confirmation before removing anything. |
-| `/sources` | Add, edit, enable, disable, delete, and sync sources. Adding writes `config.json`; deleting also drops the source's index entries, embeddings, and cloned repository after confirmation. |
+| `/sources` | Add, edit, enable, disable, delete, and sync sources, and set a trust level per source. Adding writes `config.json`; deleting also drops the source's index entries and cloned repository after confirmation. |
 | `/settings` | Run a sync (as a separate process, log streamed to the page), preview and remove duplicate index entries, and toggle automatic dedupe after every sync (`dedupeAfterSync` in `config.json`). |
 
 Links to skills are stable as long as the server runs on the same port. Use the Copy link button on a skill page to share a specific skill and its findings.
 
-Installing from the UI reuses the same plan, risk summary, warning, and confirmation flow as the CLI: the dialog first previews the plan, then asks for confirmation before writing anything. With an embedding provider configured, search uses cosine similarity against the stored embeddings. Without one, it falls back to the same keyword search used by `acs search` and says so on the page.
+Installing from the UI reuses the same plan, risk summary, warning, and confirmation flow as the CLI: the dialog first previews the plan, then asks for confirmation before writing anything. Search uses the same keyword matching as `acs search`.
 
 Every finding shown in the UI comes from static pattern matching, so the detail page exists to let you judge false positives: a match in prose is far less meaningful than a match in a code block or a shipped script, and the excerpt plus the highlighted line makes that visible.
-
-Embeddings are computed during `acs sync` and stored in `~/.acs/embeddings.json`, keyed by source and skill name with the content hash and a description hash, so a vector is only recomputed when the description or model changes.
-
-The embedding provider is configured in `config.json` and defaults to none. The base CLI never needs an API key. Supported providers:
-
-```json
-"embedding": { "provider": "openai", "model": "text-embedding-3-small", "apiKeyEnv": "OPENAI_API_KEY" }
-```
-
-```json
-"embedding": { "provider": "ollama", "model": "nomic-embed-text", "baseUrl": "http://127.0.0.1:11434" }
-```
-
-```json
-"embedding": { "provider": "openai-compatible", "baseUrl": "https://host/v1", "model": "model-name", "apiKeyEnv": "MY_KEY" }
-```
-
-`apiKeyEnv` names the environment variable holding the key. After configuring a provider, run `acs sync` to compute embeddings, then `acs ui`.
 
 ## Development
 
