@@ -10,7 +10,7 @@ export function registerUninstall(program: Command): void {
   program
     .command("uninstall <skill>")
     .description("Remove an installed skill and its entry from installed.json")
-    .option("--target <target>", "install target to remove from: claude-code, codex, web")
+    .option("--target <target>", "install target to remove from: claude-code, codex, grok, web")
     .option("--source <name>", "source to disambiguate a skill name")
     .option("--yes", "skip the confirmation prompt", false)
     .option("--dry-run", "print what would be removed without removing anything", false)

@@ -18,6 +18,7 @@ const emit = defineEmits<{ done: [] }>();
 const targetOptions = [
   { label: "Claude Code", value: "claude-code" },
   { label: "Codex", value: "codex" },
+  { label: "Grok", value: "grok" },
   { label: "Web (zip export)", value: "web" },
 ];
 const target = ref("claude-code");

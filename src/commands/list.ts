@@ -63,7 +63,7 @@ export function registerList(program: Command): void {
     .description("List indexed skills")
     .option("--category <category>", "filter by category")
     .option("--risk <level>", "filter by risk level: low, medium, high (comma separated)")
-    .option("--tool <tool>", "hide skills that do not apply to the tool: claude-code, codex, web")
+    .option("--tool <tool>", "hide skills that do not apply to the tool: claude-code, codex, grok, web")
     .option("--source <name>", "filter by source name")
     .option("--has-scripts", "only skills that ship scripts or executable code blocks", false)
     .option("--network", "only skills that reference network calls", false)

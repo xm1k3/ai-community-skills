@@ -20,8 +20,8 @@ interface InstallOptions {
 export function registerInstall(program: Command): void {
   program
     .command("install <skill>")
-    .description("Install a skill into Claude Code, Codex CLI, or export it as a zip for claude.ai")
-    .option("--target <target>", "install target: claude-code, codex, web", "claude-code")
+    .description("Install a skill into Claude Code, Codex CLI, Grok Build, or export it as a zip for claude.ai")
+    .option("--target <target>", "install target: claude-code, codex, grok, web", "claude-code")
     .option("--personal", "install into the user level skills directory (default)", false)
     .option("--project", "install into the current project skills directory", false)
     .option("--link", "symlink the skill directory instead of copying it", false)

@@ -1,6 +1,6 @@
 export type RiskLevel = "low" | "medium" | "high";
 
-export type InstallTarget = "claude-code" | "codex" | "web";
+export type InstallTarget = "claude-code" | "codex" | "grok" | "web";
 
 export type InstallScope = "personal" | "project";
 

@@ -16,6 +16,7 @@ const toast = useToast();
 const targets = [
   { label: "Claude Code", value: "claude-code" },
   { label: "Codex", value: "codex" },
+  { label: "Grok", value: "grok" },
   { label: "Web (zip archive)", value: "web" },
 ];
 const scopes = [

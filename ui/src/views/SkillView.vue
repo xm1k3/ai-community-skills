@@ -184,7 +184,7 @@ function toggleInstalledMenu(event: Event) {
   installMenu.value?.toggle(event);
 }
 
-const TARGET_LABELS: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex", web: "web export" };
+const TARGET_LABELS: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex", grok: "Grok", web: "web export" };
 
 function locationLabel(record: InstalledRef): string {
   const target = TARGET_LABELS[record.target] ?? record.target;

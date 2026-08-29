@@ -142,7 +142,7 @@ function updateRecord(record: InstalledRecord) {
   });
 }
 
-const TARGET_LABELS: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex", web: "web export" };
+const TARGET_LABELS: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex", grok: "Grok", web: "web export" };
 
 function targetLabel(record: InstalledRecord): string {
   return TARGET_LABELS[record.target] ?? record.target;

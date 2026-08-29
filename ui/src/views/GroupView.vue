@@ -63,6 +63,7 @@ const installError = ref<string | null>(null);
 const targets = [
   { label: "Claude Code", value: "claude-code" },
   { label: "Codex", value: "codex" },
+  { label: "Grok", value: "grok" },
   { label: "Web (zip archives)", value: "web" },
 ];
 const scopes = [

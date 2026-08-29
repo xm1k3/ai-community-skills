@@ -2,7 +2,7 @@ import path from "node:path";
 import { homeDir } from "../paths";
 import type { InstallScope, InstallTarget } from "../types";
 
-export const INSTALL_TARGETS: InstallTarget[] = ["claude-code", "codex", "web"];
+export const INSTALL_TARGETS: InstallTarget[] = ["claude-code", "codex", "grok", "web"];
 
 export function parseTarget(value: string): InstallTarget {
   if ((INSTALL_TARGETS as string[]).includes(value)) return value as InstallTarget;
@@ -11,7 +11,7 @@ export function parseTarget(value: string): InstallTarget {
 
 export function resolveInstallPath(target: InstallTarget, scope: InstallScope | null, name: string, cwd: string): string {
   if (target === "web") return path.join(cwd, "acs-exports", `${name}.zip`);
-  const folder = target === "claude-code" ? ".claude" : ".codex";
+  const folder = target === "claude-code" ? ".claude" : target === "grok" ? ".grok" : ".codex";
   const base = scope === "project" ? cwd : homeDir();
   return path.join(base, folder, "skills", name);
 }
