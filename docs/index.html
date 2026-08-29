@@ -86,6 +86,18 @@
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.08);
   }
   .shot img { display: block; width: 100%; height: auto; }
+  .shot.zoom { cursor: zoom-in; }
+
+  .lightbox {
+    position: fixed; inset: 0; z-index: 50;
+    display: none; align-items: center; justify-content: center;
+    padding: 32px; background: rgba(9, 9, 11, 0.82); cursor: zoom-out;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img {
+    max-width: 100%; max-height: 100%; border-radius: 10px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5); background: var(--panel);
+  }
   .hero .shot { margin: 40px auto 0; max-width: 1000px; }
 
   section { padding: 56px 0; }
@@ -104,6 +116,7 @@
   .row {
     display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 40px; align-items: center;
   }
+  .row.flip { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
   .row.flip .copy { order: 2; }
   .row .copy h3 { font-size: 20px; letter-spacing: -0.02em; margin: 0 0 10px; }
   .row .copy p { color: var(--muted); margin: 0 0 14px; }
@@ -139,7 +152,7 @@
   @media (max-width: 820px) {
     .hero h1 { font-size: 34px; }
     .features { grid-template-columns: 1fr; }
-    .row { grid-template-columns: 1fr; gap: 18px; }
+    .row, .row.flip { grid-template-columns: 1fr; gap: 18px; }
     .row.flip .copy { order: 0; }
     .top nav { gap: 14px; }
   }
@@ -166,7 +179,7 @@
         <a class="btn primary" href="#cli">Get started</a>
         <a class="btn" href="https://github.com/xm1k3/ai-community-skills">View on GitHub</a>
       </div>
-      <div class="shot"><img src="assets/dashboard.jpg" alt="The ai-community-skills dashboard"></div>
+      <div class="shot zoom"><img src="assets/dashboard.jpg" alt="The ai-community-skills dashboard"></div>
     </section>
 
     <section id="features">
@@ -215,7 +228,7 @@
               <li>Every filter lives in the URL, so a view can be shared</li>
             </ul>
           </div>
-          <div class="shot"><img src="assets/browse.jpg" alt="Browse the catalog with filters"></div>
+          <div class="shot zoom"><img src="assets/browse.jpg" alt="Browse the catalog with filters"></div>
         </div>
         <div class="row flip">
           <div class="copy">
@@ -228,7 +241,7 @@
               <li>Install from the page, with the risk summary in front of you</li>
             </ul>
           </div>
-          <div class="shot"><img src="assets/skill.jpg" alt="A skill page with rendered SKILL.md"></div>
+          <div class="shot zoom"><img src="assets/skill.jpg" alt="A skill page with rendered SKILL.md"></div>
         </div>
         <div class="row">
           <div class="copy">
@@ -240,7 +253,7 @@
               <li>Enable, disable, sync, or remove a source without touching a file</li>
             </ul>
           </div>
-          <div class="shot"><img src="assets/sources.jpg" alt="Source management with trust levels"></div>
+          <div class="shot zoom"><img src="assets/sources.jpg" alt="Source management with trust levels"></div>
         </div>
       </div>
     </section>
@@ -277,5 +290,33 @@ acs ui</pre>
       <a href="https://github.com/xm1k3">Made with <span class="heart">&hearts;</span> by xm1k3</a>
     </footer>
   </div>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-label="Screenshot preview">
+    <img id="lightbox-img" src="" alt="">
+  </div>
+
+  <script>
+    (function () {
+      var box = document.getElementById("lightbox");
+      var img = document.getElementById("lightbox-img");
+      function close() {
+        box.classList.remove("open");
+        img.src = "";
+        document.body.style.overflow = "";
+      }
+      document.querySelectorAll(".shot.zoom img").forEach(function (source) {
+        source.addEventListener("click", function () {
+          img.src = source.src;
+          img.alt = source.alt;
+          box.classList.add("open");
+          document.body.style.overflow = "hidden";
+        });
+      });
+      box.addEventListener("click", close);
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") close();
+      });
+    })();
+  </script>
 </body>
 </html>
