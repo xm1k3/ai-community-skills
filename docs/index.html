@@ -55,7 +55,8 @@
     background: var(--accent); color: var(--accent-contrast);
     display: grid; place-items: center; font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
   }
-  .top nav { display: flex; gap: 22px; font-size: 14px; }
+  .brand .brand-name { white-space: nowrap; }
+  .top nav { display: flex; gap: 22px; font-size: 14px; white-space: nowrap; }
   .top nav a { text-decoration: none; color: var(--muted); }
   .top nav a:hover { color: var(--text); }
 
@@ -149,6 +150,19 @@
   footer a:hover { color: var(--text); }
   .heart { color: #ef4444; }
 
+  @media (max-width: 640px) {
+    .wrap { padding: 0 18px; }
+    .top { padding: 14px 0; gap: 12px; }
+    .brand .brand-name { display: none; }
+    .top nav { gap: 14px; font-size: 13px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .hero { padding: 36px 0 24px; }
+    .hero h1 { font-size: 30px; }
+    .hero p.lead { font-size: 16px; }
+    .install { max-width: 100%; font-size: 12.5px; overflow-x: auto; white-space: nowrap; }
+    section { padding: 40px 0; }
+    .lightbox { padding: 12px; }
+  }
+
   @media (max-width: 820px) {
     .hero h1 { font-size: 34px; }
     .features { grid-template-columns: 1fr; }
@@ -161,7 +175,7 @@
 <body>
   <div class="wrap">
     <header class="top">
-      <a class="brand" href="#"><img src="assets/logo.svg" alt="" width="28" height="28" style="border-radius: 7px">ai-community-skills</a>
+      <a class="brand" href="#"><img src="assets/logo.svg" alt="" width="28" height="28" style="border-radius: 7px"><span class="brand-name">ai-community-skills</span></a>
       <nav>
         <a href="#features">Features</a>
         <a href="#dashboard">Dashboard</a>
