@@ -1,6 +1,6 @@
 {
   "name": "ai-community-skills",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "All the community Agent Skills scattered across GitHub in one local catalog, with risk analysis. Install into Claude Code, Codex, or Grok.",
   "license": "MIT",
   "type": "module",
