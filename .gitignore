@@ -150,3 +150,6 @@ dist
 acs-exports
 awesome-list.md
 .DS_Store
+
+# Local Claude Code instructions
+CLAUDE.local.md
