@@ -7,6 +7,7 @@ export const LATEST_VERSION_URL = `https://registry.npmjs.org/${PACKAGE_NAME}/la
 export const RELEASES_URL = "https://github.com/xm1k3/ai-community-skills/releases";
 export const UPGRADE_COMMAND = `npm install -g ${PACKAGE_NAME}@latest`;
 export const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+export const UI_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 3000;
 
 export interface UpdateCache {
@@ -105,6 +106,7 @@ export class UpdateChecker {
   constructor(
     private readonly current = currentVersion(),
     private readonly env: NodeJS.ProcessEnv = process.env,
+    private readonly intervalMs = CHECK_INTERVAL_MS,
   ) {}
 
   get enabled(): boolean {
@@ -115,7 +117,7 @@ export class UpdateChecker {
     if (this.pending) return this.pending;
     const cache = readUpdateCache();
     if (!this.enabled) return Promise.resolve(updateInfoFor(this.current, null));
-    if (isCacheFresh(cache, this.current, now)) return Promise.resolve(updateInfoFor(this.current, cache?.latest ?? null));
+    if (isCacheFresh(cache, this.current, now, this.intervalMs)) return Promise.resolve(updateInfoFor(this.current, cache?.latest ?? null));
     const controller = new AbortController();
     this.controller = controller;
     this.pending = fetchLatestVersion(LATEST_VERSION_URL, FETCH_TIMEOUT_MS, controller.signal)

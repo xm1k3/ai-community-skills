@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import { log, warn } from "../output";
 import { startUiServer } from "../ui/server";
-import { printUpdateNotice, UpdateChecker } from "../update";
+import { printUpdateNotice, UI_CHECK_INTERVAL_MS, UpdateChecker } from "../update";
 import { run } from "./common";
 
 export const DEFAULT_UI_PORT = 8080;
@@ -26,7 +26,7 @@ export function registerUi(program: Command): void {
         }
         log("Project scope installs and web exports use the current directory.");
         log("Press Ctrl+C to stop.");
-        printUpdateNotice(await new UpdateChecker().result());
+        printUpdateNotice(await new UpdateChecker(undefined, process.env, UI_CHECK_INTERVAL_MS).result());
         const shutdown = () => {
           server.close(() => process.exit(0));
         };

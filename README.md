@@ -138,7 +138,7 @@ All data lives under `~/.acs/` (config, index, install records, favorites and gr
 
 ## Updates
 
-Once a day acs asks the npm registry for the latest published version. When a newer one exists, every command prints a short notice on stderr and the dashboard footer shows an upgrade button with the command to run:
+Once a day (once an hour while `acs ui` is running) acs asks the npm registry for the latest published version. When a newer one exists, every command prints a short notice on stderr and the dashboard footer shows an upgrade button with the command to run:
 
 ```
 npm install -g ai-community-skills@latest

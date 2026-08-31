@@ -141,6 +141,15 @@ describe("UpdateChecker", () => {
     expect(info).toEqual({ current: "0.3.0", latest: "0.3.1", updateAvailable: true });
   });
 
+  it("re-checks sooner with a shorter interval", async () => {
+    const fetchMock = stubRegistry("0.3.1");
+    writeUpdateCache({ checkedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), latest: "0.3.0" });
+    expect((await new UpdateChecker("0.3.0", {}).result()).latest).toBe("0.3.0");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect((await new UpdateChecker("0.3.0", {}, 60 * 60 * 1000).result()).latest).toBe("0.3.1");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("falls back to the stale cache when the registry is unreachable", async () => {
     vi.stubGlobal(
       "fetch",
