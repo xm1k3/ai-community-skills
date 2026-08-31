@@ -168,6 +168,45 @@ a {
   font-size: inherit;
 }
 
+.sidebar-foot .update-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 2px 0;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  color: var(--p-text-color);
+  background: var(--acs-panel);
+  border: 1px solid var(--acs-border);
+  border-radius: var(--p-border-radius-md);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.sidebar-foot .update-card:hover {
+  background: var(--acs-hover);
+  border-color: var(--p-primary-color);
+}
+
+.sidebar-foot .update-card .pi-arrow-circle-up {
+  color: var(--p-primary-color);
+  font-size: 14px;
+}
+
+.sidebar-foot .update-card .update-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-foot .update-card .pi-angle-right {
+  color: var(--p-text-muted-color);
+  font-size: 12px;
+}
+
 .upgrade-text {
   margin: 0 0 12px;
   color: var(--p-text-muted-color);
@@ -1375,6 +1414,13 @@ tr:hover .row-actions {
   }
   .sidebar-foot .row.sync,
   .sidebar-foot .row.version {
+    display: none;
+  }
+  .sidebar-foot .update-card {
+    margin: 0;
+    padding: 6px 10px;
+  }
+  .sidebar-foot .update-card .update-text {
     display: none;
   }
   .page {

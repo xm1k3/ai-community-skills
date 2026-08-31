@@ -87,17 +87,13 @@ onBeforeUnmount(() => {
         </div>
         <div class="row version" v-if="status">
           <span>Version</span>
-          <Button
-            v-if="status.update.updateAvailable"
-            icon="pi pi-arrow-circle-up"
-            :label="`Upgrade to v${status.update.latest}`"
-            text
-            size="small"
-            severity="info"
-            @click="upgradeOpen = true"
-          />
-          <span v-else>v{{ status.update.current }}</span>
+          <span>v{{ status.update.current }}</span>
         </div>
+        <button v-if="status && status.update.updateAvailable" type="button" class="update-card" @click="upgradeOpen = true">
+          <i class="pi pi-arrow-circle-up"></i>
+          <span class="update-text"><strong>v{{ status.update.latest }}</strong> is available</span>
+          <i class="pi pi-angle-right"></i>
+        </button>
         <a class="credit" href="https://github.com/xm1k3" target="_blank" rel="noopener">
           <i class="pi pi-github"></i>
           <span>Made with <i class="pi pi-heart-fill heart"></i> by xm1k3</span>
