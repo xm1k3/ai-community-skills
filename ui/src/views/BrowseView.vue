@@ -39,6 +39,7 @@ const flagOptions = [
 
 const sortOptions = computed(() => {
   const options = [
+    { label: "Folder, top level first", value: "folder" },
     { label: "Name", value: "name" },
     { label: "Risk, highest first", value: "risk" },
     { label: "Recently updated", value: "updated" },
@@ -70,7 +71,7 @@ const current = computed(() => ({
   author: str(route.query.author),
   installed: str(route.query.installed),
   flags: list(route.query.flags),
-  sort: str(route.query.sort) || (str(route.query.q) ? "relevance" : "name"),
+  sort: str(route.query.sort) || (str(route.query.q) ? "relevance" : "folder"),
   order: str(route.query.order),
   page: Math.max(1, Number.parseInt(str(route.query.page), 10) || 1),
   size: PAGE_SIZES.includes(Number.parseInt(str(route.query.size), 10)) ? Number.parseInt(str(route.query.size), 10) : DEFAULT_PAGE_SIZE,
@@ -240,6 +241,7 @@ watch(
 const categoryOptions = computed(() => (facets.value?.categories ?? []).map((facet) => ({ label: `${facet.name} (${facet.count})`, value: facet.name })));
 const sourceOptions = computed(() => (facets.value?.sources ?? []).map((facet) => ({ label: `${facet.name} (${facet.count})`, value: facet.name })));
 const tagFacets = computed(() => (facets.value?.tags ?? []).slice(0, 18));
+const folderFacets = computed(() => facets.value?.folders ?? []);
 </script>
 
 <template>
@@ -288,6 +290,15 @@ const tagFacets = computed(() => (facets.value?.tags ?? []).slice(0, 18));
         <div class="group">
           <label for="flags">Findings</label>
           <MultiSelect id="flags" :modelValue="current.flags" :options="flagOptions" optionLabel="label" optionValue="value" placeholder="Any" size="small" display="chip" @update:modelValue="(value: string[]) => update({ flags: value.join(',') })" />
+        </div>
+        <div class="group" v-if="current.source && (folderFacets.length > 1 || current.path)">
+          <span class="group-label">Folder</span>
+          <div class="chips">
+            <button v-if="current.path" type="button" class="chip active mono" @click="update({ path: '' })">{{ current.path }} ✕</button>
+            <template v-for="facet in folderFacets" :key="facet.name">
+              <button v-if="facet.name !== current.path" type="button" class="chip mono" @click="update({ path: facet.name })">{{ facet.name }} {{ facet.count }}</button>
+            </template>
+          </div>
         </div>
         <div class="group" v-if="tagFacets.length > 0 || current.tag">
           <span class="group-label">Tags</span>

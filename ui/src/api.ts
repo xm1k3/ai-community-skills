@@ -218,7 +218,7 @@ export interface BrowseResponse {
   sort: string;
   order: string;
   results: ListedEntry[];
-  facets: { categories: Facet[]; sources: Facet[]; risk: RiskCounts; tags: Facet[] };
+  facets: { categories: Facet[]; sources: Facet[]; risk: RiskCounts; tags: Facet[]; folders: Facet[] };
 }
 
 export interface InstalledRecord {

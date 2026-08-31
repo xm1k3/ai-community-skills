@@ -19,6 +19,7 @@ import {
 } from "../collections";
 import { createEmbeddingProvider, EMBEDDING_CONFIG_HINT, rankBySimilarity, type EmbeddingProvider } from "../embeddings";
 import { dedupeIndex } from "../index/builder";
+import { folderFacets, folderRank, inFolder, minDepthBySource } from "../index/ordering";
 import { loadSkillDirectory } from "../index/scanner";
 import { describePlan, executeInstall, planInstall, removeInstalled, riskSummaryLines } from "../install/installer";
 import { parseTarget } from "../install/targets";
@@ -506,7 +507,7 @@ export class UiService {
       if (params.risk.length > 0 && !params.risk.includes(entry.riskLevel)) return false;
       if (params.category && entry.category !== params.category) return false;
       if (params.source && entry.source !== params.source) return false;
-      if (params.path && entry.path !== params.path && !entry.path.startsWith(`${params.path}/`)) return false;
+      if (params.path && !inFolder(entry.path, params.path)) return false;
       if (params.tag && !(entry.tags ?? []).includes(params.tag)) return false;
       if (params.author && entry.author !== params.author) return false;
       if (params.installed) {
@@ -516,13 +517,16 @@ export class UiService {
       for (const flag of params.flags) if (!matchesFlag(entry, flag)) return false;
       return true;
     });
-    const sort = params.sort === "relevance" && params.query === "" ? "name" : params.sort;
+    const sort = params.sort === "relevance" && params.query === "" ? "folder" : params.sort;
+    const minDepths = minDepthBySource(this.index);
     const installedRank = (entry: SkillEntry) => (this.installedFor(entry, installed).length > 0 ? 1 : 0);
     const riskRank: Record<string, number> = { low: 0, medium: 1, high: 2 };
     const ascending = (a: { entry: SkillEntry; score: number | null }, b: { entry: SkillEntry; score: number | null }) => {
       switch (sort) {
         case "name":
           return a.entry.name.localeCompare(b.entry.name);
+        case "folder":
+          return folderRank(a.entry, minDepths) - folderRank(b.entry, minDepths);
         case "installed":
           return installedRank(a.entry) - installedRank(b.entry);
         case "risk":
@@ -537,7 +541,7 @@ export class UiService {
           return (a.score ?? 0) - (b.score ?? 0);
       }
     };
-    const order = params.order === "asc" || params.order === "desc" ? params.order : sort === "name" ? "asc" : "desc";
+    const order = params.order === "asc" || params.order === "desc" ? params.order : sort === "name" || sort === "folder" ? "asc" : "desc";
     const direction = order === "asc" ? 1 : -1;
     filtered.sort((a, b) => direction * ascending(a, b) || a.entry.name.localeCompare(b.entry.name));
     const collapsed = collapseDuplicates(filtered);
@@ -565,6 +569,7 @@ export class UiService {
         ),
         risk: riskCounts(ranked.map((item) => item.entry)),
         tags: topTags(scoped.map((item) => item.entry)),
+        folders: params.source ? folderFacets(ranked.map((item) => item.entry).filter((entry) => entry.source === params.source)) : [],
       },
     };
   }
