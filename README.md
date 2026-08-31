@@ -136,6 +136,16 @@ Your local `~/.acs/config.json` is yours to edit, from the file or from the Sour
 
 All data lives under `~/.acs/` (config, index, install records, favorites and groups, cloned sources). Set `ACS_HOME` to use a different directory.
 
+## Updates
+
+Once a day acs asks the npm registry for the latest published version. When a newer one exists, every command prints a short notice on stderr and the dashboard footer shows an upgrade button with the command to run:
+
+```
+npm install -g ai-community-skills@latest
+```
+
+The check never blocks a command for more than a moment, the result is cached in `~/.acs/update-check.json`, and nothing else is sent. Set `ACS_NO_UPDATE_CHECK=1` to turn it off.
+
 ## Disclaimer
 
 Skills are community content pulled from third-party repositories. The risk analysis is heuristic and static: it will produce false positives and can miss real problems. Read a skill before installing it, especially anything rated high. The author is not responsible for what an installed skill does in your environment.

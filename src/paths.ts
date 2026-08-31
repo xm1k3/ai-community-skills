@@ -40,3 +40,7 @@ export function homeDir(): string {
     ? path.resolve(process.env.ACS_USER_HOME)
     : os.homedir();
 }
+
+export function updateCheckPath(): string {
+  return path.join(acsHome(), "update-check.json");
+}

@@ -163,6 +163,43 @@ a {
   padding: 0 10px;
 }
 
+.sidebar-foot .row .p-button {
+  padding: 2px 0 2px 6px;
+  font-size: inherit;
+}
+
+.upgrade-text {
+  margin: 0 0 12px;
+  color: var(--p-text-muted-color);
+  line-height: 1.5;
+}
+
+.upgrade-command {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--acs-border);
+  border-radius: var(--p-border-radius-md);
+  background: var(--acs-code-bg);
+}
+
+.upgrade-command code {
+  font-size: 12.5px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.upgrade-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--p-primary-color);
+}
+
 .sidebar-foot .credit {
   display: flex;
   align-items: center;
@@ -1336,7 +1373,8 @@ tr:hover .row-actions {
     padding: 0;
     flex-direction: row;
   }
-  .sidebar-foot .row.sync {
+  .sidebar-foot .row.sync,
+  .sidebar-foot .row.version {
     display: none;
   }
   .page {

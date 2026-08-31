@@ -125,6 +125,15 @@ export interface Status {
   home: string;
   lastSync: string | null;
   syncRunning: boolean;
+  update: UpdateStatus;
+}
+
+export interface UpdateStatus {
+  current: string;
+  latest: string | null;
+  updateAvailable: boolean;
+  upgradeCommand: string;
+  releasesUrl: string;
 }
 
 export interface Facet {

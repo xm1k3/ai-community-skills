@@ -26,6 +26,7 @@ import { acsHome, indexPath, sourceDir } from "../paths";
 import { explainSearch, searchSkills } from "../search";
 import { addSource, deleteSource, setDedupeAfterSync, suggestSourceName, updateSource } from "../sources";
 import { loadCollections, loadConfig, loadEmbeddings, loadIndex, loadInstalled, saveIndex } from "../store";
+import { cachedUpdateInfo, RELEASES_URL, UpdateChecker, UPGRADE_COMMAND } from "../update";
 import type { CollectionsState, InstallScope, InstalledRecord, RiskLevel, SkillEntry, SkillRef } from "../types";
 import { validateSkill } from "../validate";
 
@@ -300,6 +301,7 @@ export class UiService {
   private readonly cwd: string;
   private job: SyncJob | null = null;
   private child: ChildProcess | null = null;
+  private readonly updates = new UpdateChecker();
 
   constructor(private readonly provider: EmbeddingProvider | null, cwd: string) {
     this.index = loadIndex();
@@ -409,7 +411,13 @@ export class UiService {
       home: acsHome(),
       lastSync: lastSyncDate(),
       syncRunning: this.job?.status === "running",
+      update: this.updateInfo(),
     };
+  }
+
+  private updateInfo() {
+    if (this.updates.enabled) void this.updates.start();
+    return { ...cachedUpdateInfo(), upgradeCommand: UPGRADE_COMMAND, releasesUrl: RELEASES_URL };
   }
 
   sources() {

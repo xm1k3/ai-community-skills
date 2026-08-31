@@ -12,10 +12,12 @@ import { registerUi } from "./commands/ui";
 import { registerUninstall } from "./commands/uninstall";
 import { registerValidate } from "./commands/validate";
 import { fail } from "./output";
+import { printUpdateNotice, UpdateChecker } from "./update";
+import { currentVersion } from "./version";
 
-declare const __ACS_VERSION__: string | undefined;
-
-const version = typeof __ACS_VERSION__ === "string" ? __ACS_VERSION__ : "0.0.0-dev";
+const version = currentVersion();
+const updates = new UpdateChecker(version);
+updates.start();
 
 const program = new Command();
 program
@@ -38,7 +40,12 @@ registerStats(program);
 registerExportAwesomeList(program);
 registerUi(program);
 
-program.parseAsync(process.argv).catch((error: unknown) => {
-  fail(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+program
+  .parseAsync(process.argv)
+  .then(async () => {
+    printUpdateNotice(await updates.result());
+  })
+  .catch((error: unknown) => {
+    fail(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
