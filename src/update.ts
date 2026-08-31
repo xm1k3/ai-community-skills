@@ -62,8 +62,9 @@ export function writeUpdateCache(cache: UpdateCache): void {
   }
 }
 
-export function isCacheFresh(cache: UpdateCache | null, now = Date.now(), intervalMs = CHECK_INTERVAL_MS): boolean {
+export function isCacheFresh(cache: UpdateCache | null, current: string, now = Date.now(), intervalMs = CHECK_INTERVAL_MS): boolean {
   if (!cache) return false;
+  if (compareVersions(cache.latest, current) < 0) return false;
   const checkedAt = Date.parse(cache.checkedAt);
   return Number.isFinite(checkedAt) && now - checkedAt < intervalMs;
 }
@@ -114,7 +115,7 @@ export class UpdateChecker {
     if (this.pending) return this.pending;
     const cache = readUpdateCache();
     if (!this.enabled) return Promise.resolve(updateInfoFor(this.current, null));
-    if (isCacheFresh(cache, now)) return Promise.resolve(updateInfoFor(this.current, cache?.latest ?? null));
+    if (isCacheFresh(cache, this.current, now)) return Promise.resolve(updateInfoFor(this.current, cache?.latest ?? null));
     const controller = new AbortController();
     this.controller = controller;
     this.pending = fetchLatestVersion(LATEST_VERSION_URL, FETCH_TIMEOUT_MS, controller.signal)

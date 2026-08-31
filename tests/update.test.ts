@@ -73,9 +73,16 @@ describe("update cache", () => {
     expect(readUpdateCache()).toEqual({ checkedAt, latest: "0.3.0" });
     const later = Date.parse(checkedAt) + 60 * 60 * 1000;
     const muchLater = Date.parse(checkedAt) + 25 * 60 * 60 * 1000;
-    expect(isCacheFresh(readUpdateCache(), later)).toBe(true);
-    expect(isCacheFresh(readUpdateCache(), muchLater)).toBe(false);
-    expect(isCacheFresh(null)).toBe(false);
+    expect(isCacheFresh(readUpdateCache(), "0.2.0", later)).toBe(true);
+    expect(isCacheFresh(readUpdateCache(), "0.2.0", muchLater)).toBe(false);
+    expect(isCacheFresh(null, "0.2.0")).toBe(false);
+  });
+
+  it("treats a cache older than the running version as stale", () => {
+    const checkedAt = new Date().toISOString();
+    writeUpdateCache({ checkedAt, latest: "0.2.0" });
+    expect(isCacheFresh(readUpdateCache(), "0.3.0")).toBe(false);
+    expect(isCacheFresh(readUpdateCache(), "0.2.0")).toBe(true);
   });
 
   it("ignores malformed cache files", () => {
@@ -124,6 +131,14 @@ describe("UpdateChecker", () => {
     const info = await new UpdateChecker("0.2.0", {}).result();
     expect(info.latest).toBe("0.3.0");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("asks the registry again right after an upgrade", async () => {
+    const fetchMock = stubRegistry("0.3.1");
+    writeUpdateCache({ checkedAt: new Date().toISOString(), latest: "0.2.0" });
+    const info = await new UpdateChecker("0.3.0", {}).result();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(info).toEqual({ current: "0.3.0", latest: "0.3.1", updateAvailable: true });
   });
 
   it("falls back to the stale cache when the registry is unreachable", async () => {
