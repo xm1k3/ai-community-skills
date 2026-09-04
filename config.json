@@ -6,7 +6,8 @@
     { "name": "sickn33-agentic-awesome-skills", "repo": "https://github.com/sickn33/agentic-awesome-skills", "enabled": true },
     { "name": "alirezarezvani-claude-skills", "repo": "https://github.com/alirezarezvani/claude-skills", "enabled": true },
     { "name": "behisecc-awesome-claude-skills", "repo": "https://github.com/BehiSecc/awesome-claude-skills", "enabled": true },
-    { "name": "travisvn-awesome-claude-skills", "repo": "https://github.com/travisvn/awesome-claude-skills", "enabled": true }
+    { "name": "travisvn-awesome-claude-skills", "repo": "https://github.com/travisvn/awesome-claude-skills", "enabled": true },
+    { "name": "humanlayer-skills", "repo": "https://github.com/humanlayer/skills", "enabled": true, "trust": 50 }
   ],
   "dedupeAfterSync": true
 }
