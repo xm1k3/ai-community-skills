@@ -18,6 +18,44 @@
   <img src="docs/assets/dashboard.jpg" alt="ai-community-skills dashboard" width="900">
 </p>
 
+- [Sources](#sources)
+- Getting started
+  - [Installation](#installation)
+  - [Commands](#commands)
+  - [Usage](#usage)
+- [Web dashboard](#web-dashboard)
+- [Risk analysis](#risk-analysis)
+- Reference
+  - [Config](#config)
+  - [Updates](#updates)
+- [Disclaimer](#disclaimer)
+- [License](#license)
+
+## Sources
+
+The curated list of community repositories lives in [`config.json`](config.json) at the root of this repository. `acs init` downloads the latest version of that file and writes it to `~/.acs/config.json`, so a fresh install always starts from the current list (pass `--offline` to use the copy bundled with the package instead).
+
+| Source | Repository | Enabled |
+| --- | --- | --- |
+| anthropic-skills | [anthropics/skills](https://github.com/anthropics/skills) | yes |
+| superpowers | [obra/superpowers](https://github.com/obra/superpowers) | yes |
+| composio-awesome-claude-skills | [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills) | yes |
+| sickn33-agentic-awesome-skills | [sickn33/agentic-awesome-skills](https://github.com/sickn33/agentic-awesome-skills) | yes |
+| alirezarezvani-claude-skills | [alirezarezvani/claude-skills](https://github.com/alirezarezvani/claude-skills) | yes |
+| behisecc-awesome-claude-skills | [BehiSecc/awesome-claude-skills](https://github.com/BehiSecc/awesome-claude-skills) | yes |
+| travisvn-awesome-claude-skills | [travisvn/awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills) | yes |
+| humanlayer-skills | [humanlayer/skills](https://github.com/humanlayer/skills) | yes |
+| mattpocock-skills | [mattpocock/skills](https://github.com/mattpocock/skills) | yes |
+| k-dense-scientific-agent-skills | [K-Dense-AI/scientific-agent-skills](https://github.com/K-Dense-AI/scientific-agent-skills) | yes |
+
+Know a good repository of skills that is missing? Open a pull request that adds it to `config.json`:
+
+```json
+{ "name": "owner-repo", "repo": "https://github.com/owner/repo", "enabled": true }
+```
+
+`name` is the folder the repository is cloned into and the label used everywhere in the catalog, `repo` accepts https URLs, `owner/name` GitHub shorthand, ssh URLs, or local `file://` URLs. `trust` (0-100, default 50) says how much the copy from that repository should win when the same skill exists in more than one source.
+
 ## Installation
 
 ```
@@ -107,18 +145,6 @@ Opens a local dashboard on http://127.0.0.1:8080 with the same catalog: search a
 Every skill is analyzed statically, nothing found in a skill is ever executed. Each entry records whether it ships scripts, references network calls, contains destructive operations and whether they are paired with a confirmation, uses Claude Code specific frontmatter, contains prompt injection patterns, or references secrets and credential files. The result is a `low`, `medium`, or `high` risk level plus the list of findings, each with file, line, and excerpt, so you can judge false positives yourself before installing.
 
 Duplicates across sources are detected with a normalized content hash that ignores catalog metadata and whitespace, and the copy from the most trusted source is kept.
-
-## Sources
-
-The curated list of community repositories lives in [`config.json`](config.json) at the root of this repository. `acs init` downloads the latest version of that file and writes it to `~/.acs/config.json`, so a fresh install always starts from the current list (pass `--offline` to use the copy bundled with the package instead).
-
-Know a good repository of skills that is missing? Open a pull request that adds it to `config.json`:
-
-```json
-{ "name": "owner-repo", "repo": "https://github.com/owner/repo", "enabled": true }
-```
-
-`name` is the folder the repository is cloned into and the label used everywhere in the catalog, `repo` accepts https URLs, `owner/name` GitHub shorthand, ssh URLs, or local `file://` URLs. `trust` (0-100, default 50) says how much the copy from that repository should win when the same skill exists in more than one source.
 
 ## Config
 
