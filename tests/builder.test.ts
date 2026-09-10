@@ -135,6 +135,21 @@ describe("loadSkillDirectory", () => {
   });
 });
 
+describe("plugin detection", () => {
+  it("attaches plugin info to skills under a .claude-plugin manifest", () => {
+    fs.mkdirSync(path.join(root, "my-plugin", ".claude-plugin"), { recursive: true });
+    fs.writeFileSync(path.join(root, "my-plugin", ".claude-plugin", "plugin.json"), JSON.stringify({ name: "my-plugin", hooks: {} }));
+    fs.mkdirSync(path.join(root, "my-plugin", "commands"), { recursive: true });
+    writeSkill("my-plugin/skills/helper", "name: helper\ndescription: A helper skill packaged inside a plugin.", "Do the thing.");
+    writeSkill("plain/solo", "name: solo\ndescription: A standalone skill without a plugin wrapper.", "Do the thing.");
+    const { entries } = buildSourceIndex(root, context);
+    const packaged = entries.find((entry) => entry.name === "helper");
+    const solo = entries.find((entry) => entry.name === "solo");
+    expect(packaged?.plugin).toEqual({ name: "my-plugin", root: "my-plugin", components: ["commands", "hooks"] });
+    expect(solo?.plugin).toBeUndefined();
+  });
+});
+
 describe("buildEntry and buildSourceIndex", () => {
   it("builds a complete index entry with risk flags, commit info, and reputation", () => {
     writeSkill("skills/ops/cleanup", "name: cleanup\ndescription: Clean build artifacts when the user asks.", "```bash\nrm -rf dist\n```");

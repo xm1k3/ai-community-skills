@@ -101,19 +101,25 @@ const categoryLabels: Record<Finding["category"], string> = {
   promptInjection: "prompt injection",
   secret: "secret",
   script: "script",
+  exec: "pipes to a shell",
   claudeCodeOnly: "claude code only",
 };
 
 function categorySeverity(category: Finding["category"]): "danger" | "warn" | "secondary" | "success" | "info" {
-  if (category === "promptInjection" || category === "secret") return "danger";
+  if (category === "promptInjection" || category === "exec" || category === "secret") return "danger";
   if (category === "destructive" || category === "network") return "warn";
   if (category === "confirmation") return "success";
   if (category === "claudeCodeOnly") return "info";
   return "secondary";
 }
 
-const SEVERITY_ORDER: Finding["category"][] = ["promptInjection", "secret", "destructive", "network", "confirmation", "claudeCodeOnly", "script"];
+const SEVERITY_ORDER: Finding["category"][] = ["promptInjection", "exec", "secret", "destructive", "network", "confirmation", "claudeCodeOnly", "script"];
 const findingFilter = ref<Finding["category"] | null>(null);
+
+const pluginWarns = computed(() => {
+  const components = detail.value?.entry.plugin?.components ?? [];
+  return components.includes("hooks") || components.includes("mcp");
+});
 
 const sortedFindings = computed(() => {
   const findings = [...(detail.value?.findings ?? [])].sort(
@@ -479,6 +485,17 @@ watch(() => [source.value, skillPath.value, query.value], load, { immediate: tru
               </template>
               <dt>Content hash</dt>
               <dd class="mono">{{ detail.entry.contentHash.slice(0, 12) }}</dd>
+              <dt>Packaging</dt>
+              <dd v-if="!detail.entry.plugin">standalone skill</dd>
+              <dd v-else>
+                inside plugin <RouterLink :to="{ name: 'plugins' }">{{ detail.entry.plugin.name }}</RouterLink>
+                <template v-if="detail.entry.plugin.components.length > 0">
+                  <span :class="pluginWarns ? 'plugin-warn' : 'muted'"> · also bundles {{ detail.entry.plugin.components.join(", ") }}</span>
+                  <div class="muted small" style="margin-top: 4px">
+                    {{ pluginWarns ? "Hooks and MCP servers only activate when the whole plugin is installed with /plugin in Claude Code; acs installs the skill folder alone. On Codex or Grok, check that the instructions stand on their own." : "acs installs the skill folder alone; the extra components stay behind." }}
+                  </div>
+                </template>
+              </dd>
             </dl>
           </div>
 

@@ -68,6 +68,12 @@ export interface UpstreamSetup {
   summary: string;
 }
 
+export interface PluginInfo {
+  name: string;
+  root: string;
+  components: string[];
+}
+
 export interface SkillEntry extends RiskFlags {
   name: string;
   description: string;
@@ -89,6 +95,7 @@ export interface SkillEntry extends RiskFlags {
   author?: string;
   qualityScore?: number;
   normalizedHash?: string;
+  plugin?: PluginInfo;
 }
 
 export interface InstalledRecord {
@@ -135,6 +142,7 @@ export interface ScannedSkill {
   lines: number;
   tokenEstimate: number;
   contentHash: string;
+  plugin?: PluginInfo;
 }
 
 export interface SourceSyncState {

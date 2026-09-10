@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteLocationRaw } from "vue-router";
 import BrowseView from "./views/BrowseView.vue";
+import PluginsView from "./views/PluginsView.vue";
 import DashboardView from "./views/DashboardView.vue";
 import FavoritesView from "./views/FavoritesView.vue";
 import GroupsView from "./views/GroupsView.vue";
@@ -22,6 +23,7 @@ export const router = createRouter({
   routes: [
     { path: "/", name: "dashboard", component: DashboardView },
     { path: "/browse", name: "browse", component: BrowseView },
+    { path: "/plugins", name: "plugins", component: PluginsView },
     { path: "/favorites", name: "favorites", component: FavoritesView },
     { path: "/groups", name: "groups", component: GroupsView },
     { path: "/groups/:id", name: "group", component: GroupView },

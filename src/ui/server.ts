@@ -67,6 +67,7 @@ interface BrowseParams {
   tag: string;
   author: string;
   installed: string;
+  packaging: string;
   flags: string[];
   sort: string;
   order: string;
@@ -136,6 +137,8 @@ function publicEntry(entry: SkillEntry) {
     claudeCodeOnly: entry.claudeCodeOnly,
     promptInjectionSuspected: entry.promptInjectionSuspected,
     secretReferences: entry.secretReferences,
+    pipesToShell: entry.pipesToShell === true,
+    plugin: entry.plugin ?? null,
     sourceReputation: entry.sourceReputation,
     contentHash: entry.contentHash,
     lastCommitDate: entry.lastCommitDate,
@@ -250,6 +253,7 @@ function parseBrowseParams(params: URLSearchParams): BrowseParams {
     tag: (params.get("tag") ?? "").trim().toLowerCase(),
     author: (params.get("author") ?? "").trim(),
     installed: params.get("installed") === "yes" ? "yes" : params.get("installed") === "no" ? "no" : "",
+    packaging: params.get("packaging") === "plugin" ? "plugin" : params.get("packaging") === "standalone" ? "standalone" : "",
     flags: list("flags"),
     sort: params.get("sort") ?? "relevance",
     order: params.get("order") ?? "",
@@ -450,6 +454,47 @@ export class UiService {
     };
   }
 
+  private pluginManifest(source: string, root: string): { description: string; version: string } {
+    try {
+      const dir = root === "." ? sourceDir(source) : path.join(sourceDir(source), root);
+      const parsed = JSON.parse(fs.readFileSync(path.join(dir, ".claude-plugin", "plugin.json"), "utf8"));
+      if (!parsed || typeof parsed !== "object") return { description: "", version: "" };
+      const description = typeof parsed.description === "string" ? parsed.description.trim().slice(0, 300) : "";
+      const version = typeof parsed.version === "string" ? parsed.version.trim().slice(0, 20) : "";
+      return { description, version };
+    } catch {
+      return { description: "", version: "" };
+    }
+  }
+
+  plugins() {
+    this.index = loadIndex();
+    const groups = new Map<string, { name: string; source: string; repository: string; root: string; components: string[]; skills: number; riskLevels: Record<string, number> }>();
+    for (const entry of this.index) {
+      if (!entry.plugin) continue;
+      const key = `${entry.source}\u0000${entry.plugin.root}`;
+      let group = groups.get(key);
+      if (!group) {
+        group = {
+          name: entry.plugin.name,
+          source: entry.source,
+          repository: entry.repository,
+          root: entry.plugin.root,
+          components: entry.plugin.components,
+          skills: 0,
+          riskLevels: { low: 0, medium: 0, high: 0 },
+        };
+        groups.set(key, group);
+      }
+      group.skills++;
+      group.riskLevels[entry.riskLevel] = (group.riskLevels[entry.riskLevel] ?? 0) + 1;
+    }
+    const plugins = [...groups.values()]
+      .sort((a, b) => b.skills - a.skills || a.name.localeCompare(b.name))
+      .map((group) => ({ ...group, ...this.pluginManifest(group.source, group.root) }));
+    return { plugins, total: plugins.length };
+  }
+
   stats() {
     this.index = loadIndex();
     const installed = loadInstalled().installed;
@@ -515,6 +560,9 @@ export class UiService {
       if (params.installed) {
         const has = this.installedFor(entry, installed).length > 0;
         if (params.installed === "yes" ? !has : has) return false;
+      }
+      if (params.packaging) {
+        if (params.packaging === "plugin" ? !entry.plugin : entry.plugin) return false;
       }
       for (const flag of params.flags) if (!matchesFlag(entry, flag)) return false;
       return true;
@@ -921,6 +969,8 @@ async function route(service: UiService, request: http.IncomingMessage): Promise
         return { status: 200, body: service.suggestName(url.searchParams.get("repo") ?? "") };
       case "/api/installed":
         return { status: 200, body: service.installed() };
+      case "/api/plugins":
+        return { status: 200, body: service.plugins() };
       case "/api/skills":
         return { status: 200, body: await service.browse(parseBrowseParams(url.searchParams)) };
       case "/api/sync/status":

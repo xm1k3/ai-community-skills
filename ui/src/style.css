@@ -1722,3 +1722,69 @@ a.chip {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.facet-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.facet-row {
+  font: inherit;
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--p-text-color);
+  cursor: pointer;
+  text-align: left;
+}
+
+.facet-row:hover {
+  background: var(--acs-hover);
+}
+
+.facet-row .name {
+  overflow-wrap: anywhere;
+}
+
+.facet-row .count {
+  color: var(--p-text-muted-color);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.facet-row.active {
+  background: var(--acs-hover);
+  color: var(--p-primary-color);
+  font-weight: 600;
+}
+
+.facet-row.active .count {
+  color: inherit;
+}
+
+.tag-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.plugin-warn {
+  color: var(--p-orange-400, #f59e0b);
+}
+
+.plugin-description {
+  max-width: 640px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 2px;
+}

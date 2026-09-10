@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { parseFrontmatter, stringField } from "../frontmatter";
 import { hashFileSet } from "../hash";
-import type { ScannedSkill, SkillFile } from "../types";
+import type { PluginInfo, ScannedSkill, SkillFile } from "../types";
 
 const SKIP_DIRECTORIES = new Set([".git", "node_modules", ".acs", ".venv", "venv", "__pycache__", "dist", "build", ".next", ".cache"]);
 
@@ -146,28 +146,51 @@ export function loadSkillDirectory(dir: string, relativePath: string): ScannedSk
   };
 }
 
+const PLUGIN_COMPONENT_DIRS = ["commands", "agents", "hooks"] as const;
+
+function readPluginInfo(dir: string, relative: string): PluginInfo | null {
+  const manifestPath = path.join(dir, ".claude-plugin", "plugin.json");
+  if (!fs.existsSync(manifestPath)) return null;
+  let manifest: Record<string, unknown> = {};
+  try {
+    const parsed = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) manifest = parsed as Record<string, unknown>;
+  } catch {
+    manifest = {};
+  }
+  const components = new Set<string>();
+  for (const component of PLUGIN_COMPONENT_DIRS) {
+    if (fs.existsSync(path.join(dir, component))) components.add(component);
+    if (manifest[component] !== undefined) components.add(component);
+  }
+  if (fs.existsSync(path.join(dir, ".mcp.json")) || manifest.mcpServers !== undefined) components.add("mcp");
+  const rawName = typeof manifest.name === "string" && manifest.name.trim() !== "" ? manifest.name.trim() : path.basename(dir);
+  return { name: rawName.slice(0, 80), root: relative === "" ? "." : relative, components: [...components].sort() };
+}
+
 export function scanSkillTree(rootDir: string): ScanResult {
   const result: ScanResult = { skills: [], invalid: [] };
-  const walk = (dir: string, relative: string): void => {
+  const walk = (dir: string, relative: string, plugin: PluginInfo | null): void => {
     let entries: fs.Dirent[];
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true });
     } catch {
       return;
     }
+    const context = readPluginInfo(dir, relative) ?? plugin;
     if (entries.some((entry) => entry.isFile() && entry.name === "SKILL.md")) {
       const loaded = loadSkillDirectory(dir, relative);
       if ("reason" in loaded) result.invalid.push(loaded);
-      else result.skills.push(loaded);
+      else result.skills.push(context ? { ...loaded, plugin: context } : loaded);
       return;
     }
     entries.sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
       if (SKIP_DIRECTORIES.has(entry.name)) continue;
-      walk(path.join(dir, entry.name), relative === "" ? entry.name : `${relative}/${entry.name}`);
+      walk(path.join(dir, entry.name), relative === "" ? entry.name : `${relative}/${entry.name}`, context);
     }
   };
-  walk(rootDir, "");
+  walk(rootDir, "", null);
   return result;
 }

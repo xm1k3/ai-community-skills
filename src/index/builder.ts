@@ -54,6 +54,7 @@ export function buildEntry(skill: ScannedSkill, context: BuildContext, upstream?
     ...(upstream?.risk ? { upstreamRisk: upstream.risk } : {}),
     ...(upstream?.setup ? { setup: upstream.setup } : {}),
     ...(author(skill, upstream) ? { author: author(skill, upstream) } : {}),
+    ...(skill.plugin ? { plugin: skill.plugin } : {}),
   };
 }
 

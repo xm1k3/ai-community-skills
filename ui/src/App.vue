@@ -69,6 +69,7 @@ onBeforeUnmount(() => {
       <nav class="nav">
         <RouterLink :to="{ name: 'dashboard' }" class="nav-link" :class="{ 'router-link-active': route.name === 'dashboard' }" active-class=""><i class="pi pi-th-large"></i>Dashboard</RouterLink>
         <RouterLink :to="{ name: 'browse' }" class="nav-link" :class="{ 'router-link-active': route.name === 'browse' || route.name === 'skill' }" active-class=""><i class="pi pi-search"></i>Browse<span class="badge" v-if="status">{{ status.skills.toLocaleString() }}</span></RouterLink>
+        <RouterLink :to="{ name: 'plugins' }" class="nav-link"><i class="pi pi-box"></i>Plugins</RouterLink>
         <RouterLink :to="{ name: 'favorites' }" class="nav-link"><i class="pi pi-heart"></i>Favorites<span class="badge" v-if="status">{{ status.likes }}</span></RouterLink>
         <RouterLink :to="{ name: 'groups' }" class="nav-link" :class="{ 'router-link-active': route.name === 'groups' || route.name === 'group' }" active-class=""><i class="pi pi-folder"></i>Groups<span class="badge" v-if="status">{{ status.groups }}</span></RouterLink>
         <RouterLink :to="{ name: 'installed' }" class="nav-link"><i class="pi pi-download"></i>Installed<span class="badge" v-if="status">{{ status.installed }}</span></RouterLink>

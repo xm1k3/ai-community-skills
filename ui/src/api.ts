@@ -22,6 +22,8 @@ export interface Entry {
   claudeCodeOnly: boolean;
   promptInjectionSuspected: boolean;
   secretReferences: boolean;
+  pipesToShell: boolean;
+  plugin: PluginInfo | null;
   sourceReputation: SourceReputation;
   contentHash: string;
   lastCommitDate: string;
@@ -194,6 +196,24 @@ export interface Stats {
   attention: ListedEntry[];
 }
 
+export interface PluginInfo {
+  name: string;
+  root: string;
+  components: string[];
+}
+
+export interface PluginSummary {
+  name: string;
+  description: string;
+  version: string;
+  source: string;
+  repository: string;
+  root: string;
+  components: string[];
+  skills: number;
+  riskLevels: { low: number; medium: number; high: number };
+}
+
 export interface BrowseQuery {
   query: string;
   risk: string[];
@@ -203,6 +223,7 @@ export interface BrowseQuery {
   tag: string;
   author: string;
   installed: string;
+  packaging: string;
   flags: string[];
   sort: string;
   order: string;
@@ -340,6 +361,10 @@ export function fetchStats(): Promise<Stats> {
   return request<Stats>("/api/stats");
 }
 
+export function fetchPlugins(): Promise<{ plugins: PluginSummary[]; total: number }> {
+  return request<{ plugins: PluginSummary[]; total: number }>("/api/plugins");
+}
+
 export function browseSkills(query: BrowseQuery): Promise<BrowseResponse> {
   const params = new URLSearchParams();
   if (query.query) params.set("query", query.query);
@@ -349,6 +374,7 @@ export function browseSkills(query: BrowseQuery): Promise<BrowseResponse> {
   if (query.path) params.set("path", query.path);
   if (query.tag) params.set("tag", query.tag);
   if (query.author) params.set("author", query.author);
+  if (query.packaging) params.set("packaging", query.packaging);
   if (query.installed) params.set("installed", query.installed);
   if (query.flags.length > 0) params.set("flags", query.flags.join(","));
   params.set("sort", query.sort);

@@ -71,6 +71,7 @@ const current = computed(() => ({
   tag: str(route.query.tag),
   author: str(route.query.author),
   installed: str(route.query.installed),
+  packaging: str(route.query.packaging),
   flags: list(route.query.flags),
   sort: str(route.query.sort) || (str(route.query.q) ? "relevance" : "folder"),
   order: str(route.query.order),
@@ -84,7 +85,7 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const facets = ref<BrowseResponse["facets"] | null>(null);
 
-function update(patch: Partial<Record<"q" | "risk" | "category" | "source" | "path" | "tag" | "author" | "installed" | "flags" | "sort" | "order" | "page" | "size", string>>) {
+function update(patch: Partial<Record<"q" | "risk" | "category" | "source" | "path" | "tag" | "author" | "installed" | "packaging" | "flags" | "sort" | "order" | "page" | "size", string>>) {
   const next: LocationQueryRaw = { ...route.query, ...patch };
   if (!("page" in patch)) delete next.page;
   for (const key of Object.keys(next)) {
@@ -209,6 +210,7 @@ const hasFilters = computed(
     current.value.tag !== "" ||
     current.value.author !== "" ||
     current.value.installed !== "" ||
+    current.value.packaging !== "" ||
     current.value.flags.length > 0 ||
     current.value.query !== "",
 );
@@ -290,6 +292,20 @@ function folderLabel(folder: string): string {
             showClear
             size="small"
             @update:modelValue="(value: string | null) => update({ installed: value ?? '' })"
+          />
+        </div>
+        <div class="group">
+          <label for="packaging-filter">Packaging</label>
+          <Select
+            id="packaging-filter"
+            :modelValue="current.packaging || null"
+            :options="[{ label: 'Standalone skill', value: 'standalone' }, { label: 'Inside a plugin', value: 'plugin' }]"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Any"
+            showClear
+            size="small"
+            @update:modelValue="(value: string | null) => update({ packaging: value ?? '' })"
           />
         </div>
         <div class="group">
