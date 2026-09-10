@@ -414,7 +414,7 @@ export function fetchSyncStatus(): Promise<{ job: SyncJob | null }> {
   return request("/api/sync/status");
 }
 
-export function startSync(body: { sources?: string[]; dedupe?: boolean }): Promise<{ job: SyncJob }> {
+export function startSync(body: { sources?: string[]; dedupe?: boolean; force?: boolean }): Promise<{ job: SyncJob }> {
   return mutate("/api/sync", body);
 }
 

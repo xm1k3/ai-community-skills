@@ -503,8 +503,7 @@ export class UiService {
     } else {
       ranked = this.index.map((entry) => ({ entry, score: null }));
     }
-    const filtered = ranked.filter(({ entry }) => {
-      if (params.risk.length > 0 && !params.risk.includes(entry.riskLevel)) return false;
+    const matchesFilters = (entry: SkillEntry): boolean => {
       if (params.category && entry.category !== params.category) return false;
       if (params.source && entry.source !== params.source) return false;
       if (params.path && !inFolder(entry.path, params.path)) return false;
@@ -516,7 +515,9 @@ export class UiService {
       }
       for (const flag of params.flags) if (!matchesFlag(entry, flag)) return false;
       return true;
-    });
+    };
+    const unfilteredByRisk = ranked.filter(({ entry }) => matchesFilters(entry));
+    const filtered = unfilteredByRisk.filter(({ entry }) => params.risk.length === 0 || params.risk.includes(entry.riskLevel));
     const sort = params.sort === "relevance" && params.query === "" ? "folder" : params.sort;
     const minDepths = minDepthBySource(this.index);
     const installedRank = (entry: SkillEntry) => (this.installedFor(entry, installed).length > 0 ? 1 : 0);
@@ -567,7 +568,7 @@ export class UiService {
           ranked.map((item) => item.entry).filter((entry) => !params.category || entry.category === params.category),
           (entry) => entry.source,
         ),
-        risk: riskCounts(ranked.map((item) => item.entry)),
+        risk: riskCounts(unfilteredByRisk.map((item) => item.entry)),
         tags: topTags(scoped.map((item) => item.entry)),
         folders: params.source ? folderFacets(ranked.map((item) => item.entry).filter((entry) => entry.source === params.source)) : [],
       },
@@ -686,6 +687,7 @@ export class UiService {
     const args = [cli, "sync"];
     if (requested.length > 0) args.push("--source", ...requested);
     if (body.dedupe === true) args.push("--dedupe");
+    if (body.force === true) args.push("--force");
     const job: SyncJob = {
       id: Date.now().toString(36),
       status: "running",

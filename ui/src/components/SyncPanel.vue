@@ -12,6 +12,7 @@ const emit = defineEmits<{ finished: [job: SyncJob] }>();
 const job = ref<SyncJob | null>(null);
 const error = ref<string | null>(null);
 const dedupe = ref(false);
+const force = ref(false);
 const logBox = ref<HTMLElement | null>(null);
 let timer: number | null = null;
 let lastStatus: string | null = null;
@@ -45,7 +46,7 @@ function schedule() {
 async function start(sources?: string[]) {
   error.value = null;
   try {
-    const result = await startSync({ sources: sources && sources.length > 0 ? sources : undefined, dedupe: dedupe.value });
+    const result = await startSync({ sources: sources && sources.length > 0 ? sources : undefined, dedupe: dedupe.value, force: force.value });
     job.value = result.job;
     lastStatus = "running";
     schedule();
@@ -76,6 +77,7 @@ onBeforeUnmount(() => {
       <Button :label="props.sources && props.sources.length > 0 ? `Sync ${props.sources.join(', ')}` : 'Sync all sources'" icon="pi pi-refresh" :disabled="running" @click="start(props.sources)" />
       <Button v-if="running" label="Cancel" severity="secondary" outlined @click="cancel" />
       <label class="check-row" v-if="!running"><Checkbox v-model="dedupe" binary inputId="dedupe-now" /> Remove duplicates after this sync</label>
+      <label class="check-row" v-if="!running"><Checkbox v-model="force" binary inputId="force-rebuild" /> Rebuild unchanged sources</label>
       <span class="spacer"></span>
       <template v-if="job">
         <Tag :value="job.status" :severity="job.status === 'running' ? 'info' : job.status === 'done' ? 'success' : 'danger'" />

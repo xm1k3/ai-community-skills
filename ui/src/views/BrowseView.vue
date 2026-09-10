@@ -242,6 +242,10 @@ const categoryOptions = computed(() => (facets.value?.categories ?? []).map((fac
 const sourceOptions = computed(() => (facets.value?.sources ?? []).map((facet) => ({ label: `${facet.name} (${facet.count})`, value: facet.name })));
 const tagFacets = computed(() => (facets.value?.tags ?? []).slice(0, 18));
 const folderFacets = computed(() => facets.value?.folders ?? []);
+
+function folderLabel(folder: string): string {
+  return folder === "." ? "root" : folder;
+}
 </script>
 
 <template>
@@ -294,9 +298,9 @@ const folderFacets = computed(() => facets.value?.folders ?? []);
         <div class="group" v-if="current.source && (folderFacets.length > 1 || current.path)">
           <span class="group-label">Folder</span>
           <div class="chips">
-            <button v-if="current.path" type="button" class="chip active mono" @click="update({ path: '' })">{{ current.path }} ✕</button>
+            <button v-if="current.path" type="button" class="chip active mono" @click="update({ path: '' })">{{ folderLabel(current.path) }} ✕</button>
             <template v-for="facet in folderFacets" :key="facet.name">
-              <button v-if="facet.name !== current.path" type="button" class="chip mono" @click="update({ path: facet.name })">{{ facet.name }} {{ facet.count }}</button>
+              <button v-if="facet.name !== current.path" type="button" class="chip mono" @click="update({ path: facet.name })">{{ folderLabel(facet.name) }} {{ facet.count }}</button>
             </template>
           </div>
         </div>
@@ -327,7 +331,7 @@ const folderFacets = computed(() => facets.value?.folders ?? []);
             <div class="active-filters" v-if="current.path || current.tag || current.author">
               <template v-if="current.path">
                 <span class="muted small">Path</span>
-                <Chip :label="current.path" removable class="mono" @remove="update({ path: '' })" />
+                <Chip :label="folderLabel(current.path)" removable class="mono" @remove="update({ path: '' })" />
               </template>
               <template v-if="current.tag">
                 <span class="muted small">Tag</span>

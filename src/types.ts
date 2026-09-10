@@ -135,3 +135,13 @@ export interface ScannedSkill {
   tokenEstimate: number;
   contentHash: string;
 }
+
+export interface SourceSyncState {
+  head: string;
+  version: string;
+  syncedAt: string;
+}
+
+export interface SyncState {
+  sources: Record<string, SourceSyncState>;
+}

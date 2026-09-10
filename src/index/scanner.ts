@@ -33,6 +33,13 @@ const GENERIC_SEGMENTS = new Set([
 
 const MAX_TEXT_BYTES = 256 * 1024;
 
+const TEMPLATE_NAMES = new Set(["template-skill", "skill-template", "your-skill-name", "my-skill-name"]);
+const TEMPLATE_DESCRIPTION = /^(replace (this|with)\b|insert (a|the|your)\b|your (skill )?description\b|describe (what|your)\b|(todo|tbd)[.!]?$)/i;
+
+export function isTemplatePlaceholder(name: string, description: string): boolean {
+  return TEMPLATE_NAMES.has(name.trim().toLowerCase()) || TEMPLATE_DESCRIPTION.test(description.trim());
+}
+
 export interface InvalidSkill {
   path: string;
   reason: string;
@@ -122,6 +129,7 @@ export function loadSkillDirectory(dir: string, relativePath: string): ScannedSk
   const description = stringField(parsed.data, "description");
   if (!name) return { path: relativePath, reason: "frontmatter is missing a name" };
   if (!description) return { path: relativePath, reason: "frontmatter is missing a description" };
+  if (isTemplatePlaceholder(name, description)) return { path: relativePath, reason: "SKILL.md is a template placeholder" };
   const { files, contentHash } = readSkillFiles(dir);
   return {
     name,

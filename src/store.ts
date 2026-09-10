@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { collectionsPath, configPath, embeddingsPath, indexPath, installedPath } from "./paths";
-import type { CollectionsState, Config, EmbeddingsFile, InstalledState, SkillEntry, SourceConfig } from "./types";
+import { collectionsPath, configPath, embeddingsPath, indexPath, installedPath, syncStatePath } from "./paths";
+import type { CollectionsState, Config, EmbeddingsFile, InstalledState, SkillEntry, SourceConfig, SyncState } from "./types";
 
 export function readJsonFile<T>(file: string, fallback: T): T {
   if (!fs.existsSync(file)) return fallback;
@@ -109,4 +109,13 @@ export function loadCollections(): CollectionsState {
 
 export function saveCollections(state: CollectionsState): void {
   writeJsonFile(collectionsPath(), state);
+}
+
+export function loadSyncState(): SyncState {
+  const state = readJsonFile<Partial<SyncState>>(syncStatePath(), {});
+  return { sources: state.sources && typeof state.sources === "object" ? state.sources : {} };
+}
+
+export function saveSyncState(state: SyncState): void {
+  writeJsonFile(syncStatePath(), state);
 }

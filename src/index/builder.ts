@@ -10,9 +10,9 @@ export function qualityScoreFor(skill: ScannedSkill): number {
   return Math.max(0, Math.min(100, 100 - report.errors.length * 15 - report.warnings.length * 5));
 }
 
-export interface CommitLookup {
-  (relativePath: string): { hash: string; date: string };
-}
+import type { CommitLookup } from "../git";
+
+export type { CommitLookup };
 
 export interface BuildContext {
   source: string;

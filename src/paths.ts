@@ -44,3 +44,7 @@ export function homeDir(): string {
 export function updateCheckPath(): string {
   return path.join(acsHome(), "update-check.json");
 }
+
+export function syncStatePath(): string {
+  return path.join(acsHome(), "sync-state.json");
+}

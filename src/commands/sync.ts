@@ -1,13 +1,14 @@
 import type { Command } from "commander";
 import { createEmbeddingProvider, syncEmbeddings } from "../embeddings";
-import { cloneOrPull, contributorCount, ensureGitAvailable, hasCiWorkflow, lastCommitForPath, repositoryLastActivity } from "../git";
+import { cloneOrPull, commitLookupForRepository, contributorCount, ensureGitAvailable, hasCiWorkflow, repositoryHeadHash, repositoryLastActivity } from "../git";
 import { cloneUrl, fetchGithubRepoInfo, normalizeRepoUrl } from "../github";
 import { shortHash } from "../hash";
 import { buildSourceIndex, dedupeIndex, mergeIndex } from "../index/builder";
 import { log, warn } from "../output";
 import { sourceDir } from "../paths";
-import { loadConfig, loadEmbeddings, loadIndex, loadInstalled, saveEmbeddings, saveIndex } from "../store";
-import type { InstalledRecord, SkillEntry, SourceConfig, SourceReputation } from "../types";
+import { loadConfig, loadEmbeddings, loadIndex, loadInstalled, loadSyncState, saveEmbeddings, saveIndex, saveSyncState } from "../store";
+import type { InstalledRecord, SkillEntry, SourceConfig, SourceReputation, SourceSyncState } from "../types";
+import { currentVersion } from "../version";
 import { run } from "./common";
 
 interface SyncOptions {
@@ -17,6 +18,11 @@ interface SyncOptions {
   embeddings: boolean;
   verbose: boolean;
   dedupe?: boolean;
+  force: boolean;
+}
+
+export function canReuseIndex(state: SourceSyncState | undefined, head: string, version: string, indexedSkills: number): boolean {
+  return state !== undefined && head !== "" && state.head === head && state.version === version && indexedSkills > 0;
 }
 
 const RISK_FIELDS: (keyof SkillEntry)[] = [
@@ -78,6 +84,7 @@ export function registerSync(program: Command): void {
     .option("--no-embeddings", "skip embedding computation even if a provider is configured")
     .option("--verbose", "print skipped directories and other details", false)
     .option("--dedupe", "remove duplicate skills after rebuilding the index, also enabled by dedupeAfterSync in config.json")
+    .option("--force", "rebuild the index of every source even when its repository has not changed", false)
     .action(
       run(async (options: SyncOptions) => {
         const config = loadConfig();
@@ -99,6 +106,8 @@ export function registerSync(program: Command): void {
         ensureGitAvailable();
         const previousIndex = loadIndex();
         const previousByKey = new Map(previousIndex.map((entry) => [`${entry.source}/${entry.name}`, entry]));
+        const syncState = loadSyncState();
+        const version = currentVersion();
         const fresh: SkillEntry[] = [];
         const refreshed: string[] = [];
         let failures = 0;
@@ -108,19 +117,28 @@ export function registerSync(program: Command): void {
           process.stdout.write(`Syncing ${source.name} (${source.repo}) ... `);
           try {
             const action = cloneOrPull(cloneUrl(source.repo), dir);
+            const head = repositoryHeadHash(dir);
             const reputation = await computeReputation(source, dir, options.github);
-            const result = buildSourceIndex(dir, {
-              source: source.name,
-              repository: normalizeRepoUrl(source.repo),
-              reputation,
-              commitLookup: (relativePath) => lastCommitForPath(dir, relativePath),
-            });
-            fresh.push(...result.entries);
-            refreshed.push(source.name);
-            log(`${action}, ${result.entries.length} skills indexed, ${result.invalid.length} skipped`);
-            if (options.verbose) {
-              for (const invalid of result.invalid) log(`  skipped ${invalid.path || "."}: ${invalid.reason}`);
+            const kept = previousIndex.filter((entry) => entry.source === source.name);
+            if (!options.force && action === "updated" && canReuseIndex(syncState.sources[source.name], head, version, kept.length)) {
+              fresh.push(...kept.map((entry) => ({ ...entry, sourceReputation: { ...reputation } })));
+              refreshed.push(source.name);
+              log(`unchanged, ${kept.length} skills kept`);
+            } else {
+              const result = buildSourceIndex(dir, {
+                source: source.name,
+                repository: normalizeRepoUrl(source.repo),
+                reputation,
+                commitLookup: commitLookupForRepository(dir),
+              });
+              fresh.push(...result.entries);
+              refreshed.push(source.name);
+              log(`${action}, ${result.entries.length} skills indexed, ${result.invalid.length} skipped`);
+              if (options.verbose) {
+                for (const invalid of result.invalid) log(`  skipped ${invalid.path || "."}: ${invalid.reason}`);
+              }
             }
+            syncState.sources[source.name] = { head, version, syncedAt: new Date().toISOString() };
           } catch (error) {
             failures++;
             log("failed");
@@ -136,6 +154,7 @@ export function registerSync(program: Command): void {
           index = result.kept;
         }
         saveIndex(index);
+        saveSyncState(syncState);
         log(`Index rebuilt with ${index.length} skills from ${new Set(index.map((entry) => entry.source)).size} source(s).`);
 
         const installed = loadInstalled();

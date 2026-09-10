@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildEntry, buildSourceIndex, dedupeIndex, mergeIndex, type BuildContext } from "../src/index/builder";
-import { deriveCategory, loadSkillDirectory, scanSkillTree } from "../src/index/scanner";
+import { deriveCategory, isTemplatePlaceholder, loadSkillDirectory, scanSkillTree } from "../src/index/scanner";
 import type { SkillEntry } from "../src/types";
 
 let root: string;
@@ -53,6 +53,15 @@ describe("scanSkillTree", () => {
     ]);
   });
 
+  it("reports template placeholders as invalid instead of indexing them", () => {
+    writeSkill("template", "name: template-skill\ndescription: Replace with description of the skill and when Claude should use it.");
+    writeSkill("skills/real", "name: real\ndescription: Does a real thing when asked.");
+
+    const result = scanSkillTree(root);
+    expect(result.skills.map((skill) => skill.name)).toEqual(["real"]);
+    expect(result.invalid).toEqual([{ path: "template", reason: "SKILL.md is a template placeholder" }]);
+  });
+
   it("does not descend into a skill directory looking for nested skills", () => {
     writeSkill("outer", "name: outer\ndescription: Outer skill for testing nesting.", "Body", {
       "examples/SKILL.md": "---\nname: inner\ndescription: nested\n---\n",
@@ -67,6 +76,21 @@ describe("scanSkillTree", () => {
     expect(result.skills).toHaveLength(1);
     expect(result.skills[0].relativePath).toBe("");
     expect(result.skills[0].category).toBe("general");
+  });
+});
+
+describe("isTemplatePlaceholder", () => {
+  it("recognises placeholder names and descriptions", () => {
+    expect(isTemplatePlaceholder("template-skill", "Anything")).toBe(true);
+    expect(isTemplatePlaceholder("thing", "Replace with description of the skill")).toBe(true);
+    expect(isTemplatePlaceholder("thing", "Insert your description here")).toBe(true);
+    expect(isTemplatePlaceholder("thing", "TODO")).toBe(true);
+  });
+
+  it("keeps real skills, including ones that talk about templates", () => {
+    expect(isTemplatePlaceholder("template-factory", "Generate project templates from a spec")).toBe(false);
+    expect(isTemplatePlaceholder("replace-tool", "Replaces text across files with confirmation")).toBe(false);
+    expect(isTemplatePlaceholder("todo-manager", "Todo list management with priorities")).toBe(false);
   });
 });
 

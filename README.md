@@ -95,11 +95,13 @@ Build the catalog:
 
 ```
 $ acs sync
-Syncing anthropic-skills (https://github.com/anthropics/skills) ... updated, 20 skills indexed, 0 skipped
-Syncing superpowers (https://github.com/obra/superpowers) ... updated, 14 skills indexed, 0 skipped
+Syncing anthropic-skills (https://github.com/anthropics/skills) ... updated, 19 skills indexed, 1 skipped
+Syncing superpowers (https://github.com/obra/superpowers) ... unchanged, 14 skills kept
 ...
-Index rebuilt with 3317 skills from 5 source(s).
+Index rebuilt with 3315 skills from 5 source(s).
 ```
+
+A source whose repository did not change since the last sync keeps its index entries instead of being rescanned, so a routine sync takes a few seconds. The index is rebuilt anyway after upgrading acs, or on demand with `acs sync --force`.
 
 Search and inspect:
 

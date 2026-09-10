@@ -92,6 +92,46 @@ export function lastCommitForPath(dir: string, relativePath: string): CommitInfo
   }
 }
 
+export interface CommitLookup {
+  (relativePath: string): CommitInfo;
+}
+
+function parentDirectories(filePath: string): string[] {
+  const parts = filePath.split("/");
+  const dirs: string[] = [""];
+  for (let i = 1; i < parts.length; i++) dirs.push(parts.slice(0, i).join("/"));
+  return dirs;
+}
+
+export function parseCommitLog(output: string): Map<string, CommitInfo> {
+  const latest = new Map<string, CommitInfo>();
+  for (const record of output.split("\x1e")) {
+    const lines = record.split("\n").map((line) => line.trim()).filter((line) => line !== "");
+    if (lines.length === 0) continue;
+    const [hash, date] = lines[0].split("\x1f");
+    if (!hash) continue;
+    const commit: CommitInfo = { hash, date: date ?? "" };
+    if (!latest.has("")) latest.set("", commit);
+    for (const filePath of lines.slice(1)) {
+      for (const dir of parentDirectories(filePath)) if (!latest.has(dir)) latest.set(dir, commit);
+    }
+  }
+  return latest;
+}
+
+export function commitLookupForRepository(dir: string): CommitLookup {
+  let latest: Map<string, CommitInfo> | null = null;
+  try {
+    latest = parseCommitLog(runGit(["-c", "core.quotePath=false", "log", "--format=%x1e%H%x1f%cI", "--name-only"], dir));
+  } catch {
+    latest = null;
+  }
+  return (relativePath) => {
+    if (latest) return latest.get(relativePath) ?? { hash: "", date: "" };
+    return lastCommitForPath(dir, relativePath);
+  };
+}
+
 export function repositoryLastActivity(dir: string): string {
   try {
     return runGit(["log", "-1", "--format=%cI"], dir);
