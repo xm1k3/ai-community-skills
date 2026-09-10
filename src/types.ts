@@ -60,6 +60,7 @@ export interface RiskFlags {
   claudeCodeOnly: boolean;
   promptInjectionSuspected: boolean;
   secretReferences: boolean;
+  pipesToShell?: boolean;
 }
 
 export interface UpstreamSetup {

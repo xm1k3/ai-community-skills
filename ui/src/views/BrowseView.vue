@@ -28,6 +28,7 @@ const router = useRouter();
 
 const flagOptions = [
   { label: "Prompt injection suspected", value: "promptInjection" },
+  { label: "Pipes to a shell", value: "pipesToShell" },
   { label: "Secret references", value: "secrets" },
   { label: "Destructive operations", value: "destructive" },
   { label: "Network calls", value: "network" },

@@ -15,7 +15,7 @@ export interface TextBlock {
   startLine: number;
 }
 
-export type RiskCategory = "network" | "destructive" | "confirmation" | "promptInjection" | "secret" | "script" | "claudeCodeOnly";
+export type RiskCategory = "network" | "destructive" | "confirmation" | "promptInjection" | "secret" | "script" | "exec" | "claudeCodeOnly";
 
 export interface RiskFinding {
   category: RiskCategory;
@@ -86,6 +86,34 @@ const NETWORK_CALL_PATTERNS = [
 
 const NETWORK_URL_PATTERN = /https?:\/\//i;
 
+const BENIGN_URL_HOSTS = new Set([
+  "cdnjs.cloudflare.com",
+  "cdn.jsdelivr.net",
+  "unpkg.com",
+  "esm.sh",
+  "code.jquery.com",
+  "cdn.tailwindcss.com",
+  "fonts.googleapis.com",
+  "fonts.gstatic.com",
+  "localhost",
+  "127.0.0.1",
+  "0.0.0.0",
+  "[::1]",
+]);
+
+const URL_HOST_PATTERN = /https?:\/\/([^\s/"'`<>)]+)/gi;
+
+function isBenignHost(rawHost: string): boolean {
+  const host = rawHost.replace(/:\d+$/, "").toLowerCase();
+  if (BENIGN_URL_HOSTS.has(host)) return true;
+  return /(^|\.)example\.(com|org|net)$|\.(test|invalid|localhost)$/.test(host);
+}
+
+function lineHasOnlyBenignUrls(line: string): boolean {
+  const hosts = [...line.matchAll(URL_HOST_PATTERN)].map((match) => match[1]);
+  return hosts.length > 0 && hosts.every(isBenignHost);
+}
+
 function networkPatternsFor(kind: TextBlock["kind"]): RegExp[] {
   return kind === "code" ? [...NETWORK_CALL_PATTERNS, NETWORK_URL_PATTERN] : NETWORK_CALL_PATTERNS;
 }
@@ -130,7 +158,8 @@ const PROMPT_INJECTION_PATTERNS = [
   /\boverride\s+(your|the|all|any)\s+(system|safety|previous|prior|existing)\b/i,
   /\bbypass\s+(your|the|all|any)?\s*(safety|security|restrictions?|guardrails?|filters?|policies|policy)\b/i,
   /\byou\s+are\s+no\s+longer\b/i,
-  /\bnew\s+system\s+prompt\b/i,
+  /\byour\s+new\s+system\s+prompt\b/i,
+  /\bnew\s+system\s+prompt:\s/i,
   /\bjailbreak/i,
   /\bDAN\s+mode\b/,
   /\b(do\s+not|don't|never)\s+(tell|inform|notify|show|reveal|mention|disclose)(\s+this|\s+it|\s+anything)?\s+(to\s+)?the\s+user\b/i,
@@ -147,106 +176,93 @@ const PROMPT_INJECTION_PATTERNS = [
   /\bact\s+as\s+(if\s+)?(you\s+have|there\s+are)\s+no\s+(restrictions?|limits?|rules)\b/i,
 ];
 
-const SECRET_PATTERNS = [
-  /\bprocess\.env\.[A-Za-z_]/,
-  /\bos\.environ\b/,
-  /\bgetenv\s*\(/i,
-  /\bauthorization:\s*(bearer|basic|token)\b/i,
+const PIPE_TO_SHELL_PATTERNS = [
+  /\b(curl|wget)\b[^\n]*\|[^\n|]*\b(sudo\s+)?(sh|bash|zsh|source|python3?|node|perl)\b/,
   /\bbase64\s+(-d|--decode|-D)\b[^\n|]*\|\s*(sh|bash|zsh|source|eval|python3?|node|perl)\b/,
   /\b(atob|b64decode)\s*\([^\n]*\)[^\n]*\b(eval|exec|spawn|system|subprocess)\b/,
-  /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
-  /\b(sk|ghp|gho|ghu|ghs|xoxb|xoxp|xoxa|glpat)[-_][A-Za-z0-9_-]{16,}\b/,
-  /\bAKIA[0-9A-Z]{16}\b/,
-  /(^|[\s"'`/(])\.env\b(?!\.example|\.sample|\.template)/,
-  /\bkeychain\b/i,
-  /(^|[\s"'`(=:])~?\/?(\.aws|\.ssh|\.gnupg|\.netrc|\.npmrc|\.docker\/config\.json)(\/|\b)/,
 ];
 
-const SECRET_CODE_PATTERNS = [
+const SENSITIVE_NAME = "(KEY|KEYS|APIKEY|TOKEN|TOKENS|SECRET|SECRETS|PASSWORD|PASSWD|CRED|CREDS|CREDENTIAL|CREDENTIALS)";
+
+interface StrongSecretPattern {
+  pattern: RegExp;
+  material: boolean;
+}
+
+const STRONG_SECRET_PATTERNS: StrongSecretPattern[] = [
+  { pattern: new RegExp(`\\bprocess\\.env\\.[A-Z0-9_]*${SENSITIVE_NAME}[A-Z0-9_]*\\b`, "i"), material: false },
+  { pattern: new RegExp(`\\bos\\.environ(\\.get)?\\s*[\\[(]\\s*["'][A-Z0-9_]*${SENSITIVE_NAME}[A-Z0-9_]*["']`, "i"), material: false },
+  { pattern: new RegExp(`\\bgetenv\\s*\\(\\s*["']?[A-Z0-9_]*${SENSITIVE_NAME}[A-Z0-9_]*["']?\\s*\\)`, "i"), material: false },
+  { pattern: /\bauthorization:\s*(bearer|basic|token)\b/i, material: false },
+  { pattern: /-----BEGIN [A-Z ]*PRIVATE KEY-----/, material: true },
+  { pattern: /\b(sk|ghp|gho|ghu|ghs|xoxb|xoxp|xoxa|glpat)[-_][A-Za-z0-9_-]{16,}\b/, material: true },
+  { pattern: /\bAKIA[0-9A-Z]{16}\b/, material: true },
+  { pattern: /(^|[\s"'`/(])\.env\b(?!\.example|\.sample|\.template)/, material: false },
+  { pattern: /\bkeychain\b/i, material: false },
+  { pattern: /(^|[\s"'`(=:@])~?\/?(\.aws|\.ssh|\.gnupg|\.netrc|\.npmrc|\.docker\/config\.json)(\/|\b)/, material: true },
+];
+
+const WEAK_SECRET_PATTERNS = [
   /\b(api|access|auth|bearer|secret|refresh|oauth|private|session|service|app|client)[ _-]?(key|token|secret)s?\b/i,
   /\b(password|passwd|credentials?|secrets?)\b/i,
   /\b[A-Za-z_]*(api_key|apikey|secret|token|password)[A-Za-z_]*\s*[:=]\s*["'`]?[A-Za-z0-9_\-/+=]{8,}/i,
 ];
 
-const BENIGN_ENV_VARS = new Set([
-  "HOME",
-  "PATH",
-  "PWD",
-  "OLDPWD",
-  "USER",
-  "LOGNAME",
-  "SHELL",
-  "TMPDIR",
-  "TMP",
-  "TEMP",
-  "EDITOR",
-  "VISUAL",
-  "PAGER",
-  "LANG",
-  "LC_ALL",
-  "TERM",
-  "CWD",
-  "PS1",
-  "HOSTNAME",
-  "HOST",
-  "PORT",
-  "UID",
-  "GID",
-  "EUID",
-  "PPID",
-  "DISPLAY",
-  "NODE_ENV",
-  "CI",
-  "DEBUG",
-  "VERBOSE",
-  "XDG_CONFIG_HOME",
-  "XDG_DATA_HOME",
-  "XDG_CACHE_HOME",
-  "SHLVL",
-  "IFS",
-  "RANDOM",
-  "PIPESTATUS",
-  "LINENO",
-  "BASH_SOURCE",
-  "SECONDS",
-  "OSTYPE",
-  "MACHTYPE",
-  "HOSTTYPE",
-  "COLUMNS",
-  "LINES",
-  "GOPATH",
-  "GOROOT",
-  "JAVA_HOME",
-  "PYTHONPATH",
-  "VIRTUAL_ENV",
-  "NVM_DIR",
-  "CARGO_HOME",
-  "RUSTUP_HOME",
-  "PROJECT_DIR",
-  "PROJECT_ROOT",
-  "WORKSPACE",
-  "WORKDIR",
-  "ARGUMENTS",
-  "ARGS",
-  "OUTPUT_DIR",
-  "INPUT_DIR",
-  "BRANCH",
-  "BRANCH_NAME",
-  "REPO",
-  "REPO_ROOT",
-  "FILE",
-  "DIR",
-  "NAME",
-  "VERSION",
-  "CLAUDE_PROJECT_DIR",
-  "CLAUDE_SKILL_DIR",
-  "CLAUDE_PLUGIN_ROOT",
-  "CLAUDE_SESSION_ID",
-  "CODEX_HOME",
-  "SKILL_DIR",
-]);
+const STRONG_PLACEHOLDER_PATTERN = new RegExp(
+  [
+    /<[^>\n]{0,60}>/.source,
+    /\bREDACTED\b|\bexamples?\b|\bdummy\b|\bfake\b|\bsamples?\b|\bplaceholder\b|\bchangeme\b|x{4,}/.source,
+    /EXAMPLE|SAMPLE|DUMMY|PLACEHOLDER|CHANGEME|YOUR_/.source,
+    /\byour[-_ ]?[a-z0-9_ -]{0,30}(key|token|secret|password)([-_ ]?here)?\b/.source,
+    /\b(key|token|secret|password|passwd|bearer|apikey)[-_ ]?(123+|abc+|xyz+|foo|bar|here)\b/.source,
+    /\babc-?123\b/.source,
+  ].join("|"),
+  "i",
+);
+
+const WEAK_PLACEHOLDER_PATTERN = new RegExp(
+  [
+    STRONG_PLACEHOLDER_PATTERN.source,
+    /\b(my|your|user|owner|test|demo|new|old)[-_]?(password|passwd|secret|key|token)\b/.source,
+    /\b(password|passwd|secret|key|token)[-_]?(123+|abc|value|here|goes)\b/.source,
+    /\bhunter2\b/.source,
+  ].join("|"),
+  "i",
+);
+
+const HYGIENE_PATTERNS = [
+  /\bredact/i,
+  /\bnever\s+(commit|share|paste|log|store|hardcode|expose|print|echo)\b[^.\n]{0,80}\b(secret|credential|key|token|password)/i,
+  /\b(do\s+not|don't)\s+(commit|share|paste|log|store|hardcode|expose|print|echo)\b[^.\n]{0,80}\b(secret|credential|key|token|password)/i,
+  /\b(secret|credential|key|token|password)s?\b[^.\n]{0,60}\b(stays?|kept|keep|remain)s?\s+in\s+the\s+environment\b/i,
+];
+
+const EXAMPLE_PATH_PATTERN = /(test|mock|example|fixture|sample|demo)/i;
 
 const ENV_VAR_REFERENCE = /\$\{?([A-Z][A-Z0-9_]{1,})\}?/g;
+
+const SENSITIVE_ENV_SEGMENTS = new Set([
+  "KEY",
+  "KEYS",
+  "APIKEY",
+  "TOKEN",
+  "TOKENS",
+  "SECRET",
+  "SECRETS",
+  "PASSWORD",
+  "PASSWD",
+  "CRED",
+  "CREDS",
+  "CREDENTIAL",
+  "CREDENTIALS",
+]);
+
+const PLACEHOLDER_ENV_NAME = /EXAMPLE|SAMPLE|DUMMY|FAKE|TEST|PLACEHOLDER|YOUR/;
+
+function isSensitiveEnvName(name: string): boolean {
+  if (PLACEHOLDER_ENV_NAME.test(name)) return false;
+  return name.split("_").some((segment) => SENSITIVE_ENV_SEGMENTS.has(segment));
+}
 
 function fileExtension(relativePath: string): string {
   const base = relativePath.split("/").pop() ?? "";
@@ -321,17 +337,105 @@ export function collectBlocks(input: AnalysisInput): TextBlock[] {
   return blocks;
 }
 
+interface PatternHit {
+  index: number;
+  match: string;
+}
+
+function allMatches(text: string, pattern: RegExp): PatternHit[] {
+  const flags = pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`;
+  const re = new RegExp(pattern.source, flags);
+  const hits: PatternHit[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    hits.push({ index: match.index, match: match[0] });
+    if (re.lastIndex === match.index) re.lastIndex++;
+  }
+  return hits;
+}
+
+function lineAt(text: string, index: number): string {
+  const start = text.lastIndexOf("\n", index - 1) + 1;
+  let end = text.indexOf("\n", index);
+  if (end === -1) end = text.length;
+  return text.slice(start, end);
+}
+
+const QUOTE_PAIRS: Record<string, string> = { '"': '"', "'": "'", "`": "`", "“": "”", "‘": "’", "«": "»" };
+
+function isQuotedMatch(text: string, hit: PatternHit): boolean {
+  const before = text.slice(text.lastIndexOf("\n", hit.index - 1) + 1, hit.index).trimEnd();
+  const opener = before.slice(-1);
+  const closer = QUOTE_PAIRS[opener];
+  if (!closer) return false;
+  let lineEnd = text.indexOf("\n", hit.index);
+  if (lineEnd === -1) lineEnd = text.length;
+  return text.slice(hit.index + hit.match.length, lineEnd).includes(closer);
+}
+
+function firstHit(text: string, pattern: RegExp, accept: (hit: PatternHit) => boolean): PatternHit | null {
+  for (const hit of allMatches(text, pattern)) {
+    if (accept(hit)) return hit;
+  }
+  return null;
+}
+
 function matchesAny(text: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
 }
 
-function referencesSensitiveEnvVar(text: string): boolean {
-  ENV_VAR_REFERENCE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = ENV_VAR_REFERENCE.exec(text)) !== null) {
-    if (!BENIGN_ENV_VARS.has(match[1])) return true;
+interface SecretHit extends PatternHit {
+  strong: boolean;
+  material: boolean;
+  label: string;
+}
+
+function secretHitsFor(block: TextBlock): SecretHit[] {
+  const hits: SecretHit[] = [];
+  const hygiene = matchesAny(block.text, HYGIENE_PATTERNS);
+  for (const { pattern, material } of STRONG_SECRET_PATTERNS) {
+    const hit = firstHit(block.text, pattern, (candidate) => !STRONG_PLACEHOLDER_PATTERN.test(lineAt(block.text, candidate.index)));
+    if (hit) hits.push({ ...hit, strong: true, material, label: "secret or credential reference" });
   }
-  return false;
+  for (const hit of allMatches(block.text, ENV_VAR_REFERENCE)) {
+    const name = /\$\{?([A-Z][A-Z0-9_]{1,})\}?/.exec(hit.match)?.[1] ?? "";
+    if (!isSensitiveEnvName(name)) continue;
+    if (STRONG_PLACEHOLDER_PATTERN.test(lineAt(block.text, hit.index))) continue;
+    hits.push({ ...hit, strong: true, material: false, label: "sensitive environment variable reference" });
+    break;
+  }
+  if (block.kind === "code" && !hygiene) {
+    const strongLines = new Set(hits.map((hit) => block.text.lastIndexOf("\n", hit.index - 1) + 1));
+    for (const pattern of WEAK_SECRET_PATTERNS) {
+      const hit = firstHit(block.text, pattern, (candidate) => {
+        if (strongLines.has(block.text.lastIndexOf("\n", candidate.index - 1) + 1)) return false;
+        return !WEAK_PLACEHOLDER_PATTERN.test(lineAt(block.text, candidate.index));
+      });
+      if (hit) hits.push({ ...hit, strong: false, material: false, label: "secret keyword inside code" });
+    }
+  }
+  return hits;
+}
+
+const NEGATION_CONTEXT_PATTERN = /\b(must\s+not|may\s+not|cannot|can't|never|avoid|prevent(s|ed|ing)?|does\s+not|doesn't|do\s+not|don't|should\s+not|shouldn't|will\s+not|won't|prohibit(s|ed)?|forbidden|not\s+allowed|blocks?|blocked|protects?(\s+against)?|defends?(\s+against)?|refuse[sd]?)\b/i;
+
+function sentenceBefore(text: string, index: number): string {
+  let start = index;
+  while (start > 0 && !".!?\n".includes(text[start - 1])) start--;
+  return text.slice(start, index);
+}
+
+function injectionHitsFor(block: TextBlock): PatternHit[] {
+  const hits: PatternHit[] = [];
+  for (const pattern of PROMPT_INJECTION_PATTERNS) {
+    const hit = firstHit(
+      block.text,
+      pattern,
+      (candidate) => !isQuotedMatch(block.text, candidate) && !NEGATION_CONTEXT_PATTERN.test(sentenceBefore(block.text, candidate.index)),
+    );
+    if (hit) hits.push(hit);
+  }
+  return hits;
 }
 
 export function detectScripts(input: AnalysisInput, blocks: TextBlock[]): boolean {
@@ -341,14 +445,24 @@ export function detectScripts(input: AnalysisInput, blocks: TextBlock[]): boolea
   );
 }
 
+function networkHitsFor(block: TextBlock): PatternHit[] {
+  const hits: PatternHit[] = [];
+  for (const pattern of networkPatternsFor(block.kind)) {
+    const hit = firstHit(block.text, pattern, (candidate) => !lineHasOnlyBenignUrls(lineAt(block.text, candidate.index)));
+    if (hit) hits.push(hit);
+  }
+  return hits;
+}
+
 export function detectNetworkCalls(blocks: TextBlock[]): boolean {
-  return blocks.some((block) => matchesAny(block.text, networkPatternsFor(block.kind)));
+  return blocks.some((block) => networkHitsFor(block).length > 0);
 }
 
 export function detectDestructiveOps(blocks: TextBlock[]): { destructiveOps: boolean; confirmsBeforeDestructive: boolean } {
   let destructive = 0;
   let unconfirmed = 0;
   for (const block of blocks) {
+    if (block.kind !== "code") continue;
     if (!matchesAny(block.text, DESTRUCTIVE_PATTERNS)) continue;
     destructive++;
     if (!matchesAny(block.text, CONFIRMATION_PATTERNS)) unconfirmed++;
@@ -361,29 +475,38 @@ export function detectClaudeCodeOnly(frontmatter: Record<string, unknown>): bool
 }
 
 export function detectPromptInjection(blocks: TextBlock[]): boolean {
-  return blocks.some((block) => matchesAny(block.text, PROMPT_INJECTION_PATTERNS));
+  return blocks.some((block) => injectionHitsFor(block).length > 0);
+}
+
+export function detectPipesToShell(blocks: TextBlock[]): boolean {
+  return blocks.some((block) => matchesAny(block.text, PIPE_TO_SHELL_PATTERNS));
 }
 
 export function detectSecretReferences(blocks: TextBlock[]): { secretReferences: boolean; secretInCode: boolean } {
   let secretReferences = false;
   let secretInCode = false;
   for (const block of blocks) {
-    const hit =
-      matchesAny(block.text, SECRET_PATTERNS) ||
-      referencesSensitiveEnvVar(block.text) ||
-      (block.kind === "code" && matchesAny(block.text, SECRET_CODE_PATTERNS));
-    if (!hit) continue;
+    const hits = secretHitsFor(block);
+    if (hits.length === 0) continue;
     secretReferences = true;
-    if (block.kind === "code") secretInCode = true;
+    if (block.kind !== "code" || EXAMPLE_PATH_PATTERN.test(block.origin)) continue;
+    const inScriptFile = !block.origin.endsWith(".md");
+    const materialWithNetwork = hits.some((hit) => hit.material) && networkHitsFor(block).length > 0;
+    if ((inScriptFile && hits.some((hit) => hit.strong)) || materialWithNetwork) {
+      secretInCode = true;
+    }
   }
   return { secretReferences, secretInCode };
 }
 
 export function deriveRiskLevel(flags: Omit<RiskFlags, "riskLevel"> & { secretInCode?: boolean }): RiskLevel {
-  const secretHigh = flags.secretInCode ?? flags.secretReferences;
-  if (flags.destructiveOps && !flags.confirmsBeforeDestructive) return "high";
-  if (flags.promptInjectionSuspected || secretHigh) return "high";
-  if (flags.destructiveOps || flags.networkCalls || flags.secretReferences) return "medium";
+  const secretInCode = flags.secretInCode ?? false;
+  if (flags.promptInjectionSuspected) return "high";
+  if (flags.pipesToShell) return "high";
+  if (secretInCode && flags.networkCalls) return "high";
+  if (secretInCode) return "medium";
+  if (flags.destructiveOps && !flags.confirmsBeforeDestructive) return "medium";
+  if (flags.networkCalls && (flags.hasScripts || flags.secretReferences)) return "medium";
   return "low";
 }
 
@@ -399,18 +522,20 @@ export function analyzeSkill(input: AnalysisInput): RiskFlags {
     claudeCodeOnly: detectClaudeCodeOnly(input.frontmatter),
     promptInjectionSuspected: detectPromptInjection(blocks),
     secretReferences: secrets.secretReferences,
+    pipesToShell: detectPipesToShell(blocks),
   };
   return { ...partial, riskLevel: deriveRiskLevel({ ...partial, secretInCode: secrets.secretInCode }) };
 }
 
 export function riskReasons(flags: RiskFlags): string[] {
   const reasons: string[] = [];
-  if (flags.destructiveOps && !flags.confirmsBeforeDestructive) {
-    reasons.push("destructive operation without a paired confirmation");
-  } else if (flags.destructiveOps) {
-    reasons.push("destructive operation guarded by a confirmation");
-  }
   if (flags.promptInjectionSuspected) reasons.push("prompt injection pattern detected");
+  if (flags.pipesToShell) reasons.push("pipes downloaded or decoded content into an interpreter");
+  if (flags.destructiveOps && !flags.confirmsBeforeDestructive) {
+    reasons.push("destructive command without a paired confirmation");
+  } else if (flags.destructiveOps) {
+    reasons.push("destructive command guarded by a confirmation");
+  }
   if (flags.secretReferences) reasons.push("references secrets, credentials, or environment variables");
   if (flags.networkCalls) reasons.push("performs or references network calls");
   if (flags.hasScripts) reasons.push("ships scripts or executable code blocks");
@@ -434,41 +559,24 @@ function lineExcerpt(text: string, index: number): string {
   return line.length > 200 ? `${line.slice(0, 197)}...` : line;
 }
 
+function toFinding(block: TextBlock, hit: PatternHit, category: RiskCategory, label: string): RiskFinding {
+  return {
+    category,
+    label,
+    file: block.origin,
+    line: lineOfIndex(block, hit.index),
+    match: hit.match.trim(),
+    excerpt: lineExcerpt(block.text, hit.index),
+    blockKind: block.kind,
+  };
+}
+
 function findingsFor(block: TextBlock, patterns: RegExp[], category: RiskCategory, label: string): RiskFinding[] {
   const findings: RiskFinding[] = [];
   for (const pattern of patterns) {
     const match = pattern.exec(block.text);
     if (!match) continue;
-    findings.push({
-      category,
-      label,
-      file: block.origin,
-      line: lineOfIndex(block, match.index),
-      match: match[0].trim(),
-      excerpt: lineExcerpt(block.text, match.index),
-      blockKind: block.kind,
-    });
-  }
-  return findings;
-}
-
-function envVarFindings(block: TextBlock): RiskFinding[] {
-  const findings: RiskFinding[] = [];
-  const seen = new Set<string>();
-  ENV_VAR_REFERENCE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = ENV_VAR_REFERENCE.exec(block.text)) !== null) {
-    if (BENIGN_ENV_VARS.has(match[1]) || seen.has(match[1])) continue;
-    seen.add(match[1]);
-    findings.push({
-      category: "secret",
-      label: "environment variable reference",
-      file: block.origin,
-      line: lineOfIndex(block, match.index),
-      match: match[0],
-      excerpt: lineExcerpt(block.text, match.index),
-      blockKind: block.kind,
-    });
+    findings.push(toFinding(block, { index: match.index, match: match[0] }, category, label));
   }
   return findings;
 }
@@ -490,18 +598,32 @@ export function explainRisk(input: AnalysisInput): RiskFinding[] {
     if (block.kind === "code" && EXECUTABLE_LANGUAGES.has(block.language) && block.text.trim() !== "" && block.origin.endsWith(".md")) {
       findings.push({ category: "script", label: `executable code block (${block.language})`, file: block.origin, line: block.startLine, match: block.language, excerpt: block.text.trim().split("\n")[0].slice(0, 200), blockKind: "code" });
     }
-    findings.push(...findingsFor(block, networkPatternsFor(block.kind), "network", "network call reference"));
-    const destructive = findingsFor(block, DESTRUCTIVE_PATTERNS, "destructive", "destructive operation");
-    if (destructive.length > 0) {
-      const confirmations = findingsFor(block, CONFIRMATION_PATTERNS, "confirmation", "confirmation pattern in the same block");
-      const suffix = confirmations.length > 0 ? " (confirmation found in the same block)" : " (no confirmation in the same block)";
-      findings.push(...destructive.map((finding) => ({ ...finding, label: finding.label + suffix })), ...confirmations);
+    for (const hit of networkHitsFor(block)) {
+      findings.push(toFinding(block, hit, "network", "network call reference"));
     }
-    findings.push(...findingsFor(block, PROMPT_INJECTION_PATTERNS, "promptInjection", "prompt injection pattern"));
-    findings.push(...findingsFor(block, SECRET_PATTERNS, "secret", "secret or credential reference"));
-    findings.push(...envVarFindings(block));
-    if (block.kind === "code") findings.push(...findingsFor(block, SECRET_CODE_PATTERNS, "secret", "secret keyword inside code"));
+    findings.push(...findingsFor(block, PIPE_TO_SHELL_PATTERNS, "exec", "pipes downloaded or decoded content into an interpreter"));
+    if (block.kind === "code") {
+      const destructive = findingsFor(block, DESTRUCTIVE_PATTERNS, "destructive", "destructive operation");
+      if (destructive.length > 0) {
+        const confirmations = findingsFor(block, CONFIRMATION_PATTERNS, "confirmation", "confirmation pattern in the same block");
+        const suffix = confirmations.length > 0 ? " (confirmation found in the same block)" : " (no confirmation in the same block)";
+        findings.push(...destructive.map((finding) => ({ ...finding, label: finding.label + suffix })), ...confirmations);
+      }
+    }
+    for (const hit of injectionHitsFor(block)) {
+      findings.push(toFinding(block, hit, "promptInjection", "prompt injection pattern"));
+    }
+    for (const hit of secretHitsFor(block)) {
+      findings.push(toFinding(block, hit, "secret", hit.label));
+    }
     if (findings.length >= MAX_FINDINGS) break;
   }
-  return findings.slice(0, MAX_FINDINGS);
+  const seen = new Set<string>();
+  const unique = findings.filter((finding) => {
+    const key = `${finding.category}\u0000${finding.file}\u0000${finding.excerpt}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return unique.slice(0, MAX_FINDINGS);
 }

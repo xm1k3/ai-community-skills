@@ -155,6 +155,7 @@ export interface FlagCounts {
   claudeCodeOnly: number;
   promptInjectionSuspected: number;
   secretReferences: number;
+  pipesToShell: number;
 }
 
 export interface SourceStats {
@@ -258,7 +259,7 @@ export interface ScoreExplanation {
 }
 
 export interface Finding {
-  category: "network" | "destructive" | "confirmation" | "promptInjection" | "secret" | "script" | "claudeCodeOnly";
+  category: "network" | "destructive" | "confirmation" | "promptInjection" | "secret" | "script" | "exec" | "claudeCodeOnly";
   label: string;
   file: string;
   line: number;

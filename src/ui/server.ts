@@ -202,6 +202,7 @@ function flagCounts(entries: SkillEntry[]) {
     claudeCodeOnly: entries.filter((entry) => entry.claudeCodeOnly).length,
     promptInjectionSuspected: entries.filter((entry) => entry.promptInjectionSuspected).length,
     secretReferences: entries.filter((entry) => entry.secretReferences).length,
+    pipesToShell: entries.filter((entry) => entry.pipesToShell === true).length,
   };
 }
 
@@ -217,12 +218,14 @@ function matchesFlag(entry: SkillEntry, flag: string): boolean {
       return entry.promptInjectionSuspected;
     case "secrets":
       return entry.secretReferences;
+    case "pipesToShell":
+      return entry.pipesToShell === true;
     case "claudeCodeOnly":
       return entry.claudeCodeOnly;
     case "portable":
       return !entry.claudeCodeOnly;
     case "clean":
-      return !entry.hasScripts && !entry.networkCalls && !entry.destructiveOps && !entry.promptInjectionSuspected && !entry.secretReferences;
+      return !entry.hasScripts && !entry.networkCalls && !entry.destructiveOps && !entry.promptInjectionSuspected && !entry.secretReferences && entry.pipesToShell !== true;
     default:
       throw new Error(`Unknown flag filter "${flag}"`);
   }

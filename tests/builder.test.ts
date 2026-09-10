@@ -151,7 +151,7 @@ describe("buildEntry and buildSourceIndex", () => {
       path: "skills/ops/cleanup",
       lastCommitHash: "hash-skills/ops/cleanup",
       lastCommitDate: "2026-01-02T00:00:00Z",
-      riskLevel: "high",
+      riskLevel: "medium",
       hasScripts: true,
       networkCalls: false,
       destructiveOps: true,
