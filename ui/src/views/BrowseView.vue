@@ -242,7 +242,8 @@ watch(
 );
 
 const categoryOptions = computed(() => (facets.value?.categories ?? []).map((facet) => ({ label: `${facet.name} (${facet.count})`, value: facet.name })));
-const sourceOptions = computed(() => (facets.value?.sources ?? []).map((facet) => ({ label: `${facet.name} (${facet.count})`, value: facet.name })));
+const sourceFacets = computed(() => facets.value?.sources ?? []);
+const sourceTotal = computed(() => sourceFacets.value.reduce((sum, facet) => sum + facet.count, 0));
 const tagFacets = computed(() => (facets.value?.tags ?? []).slice(0, 18));
 const folderFacets = computed(() => facets.value?.folders ?? []);
 
@@ -266,15 +267,31 @@ function folderLabel(folder: string): string {
       <aside class="panel filters">
         <div class="group">
           <span class="group-label">Risk level</span>
-          <label class="check-row" v-for="level in ['high', 'medium', 'low']" :key="level">
+          <label class="check-row" v-for="level in ['low', 'medium', 'high']" :key="level">
             <Checkbox :modelValue="current.risk.includes(level)" binary @update:modelValue="(checked: boolean) => toggleRisk(level, checked)" />
             <span>{{ level }}</span>
             <span class="count" v-if="facets">{{ facets.risk[level as 'high' | 'medium' | 'low'].toLocaleString() }}</span>
           </label>
         </div>
-        <div class="group">
-          <label for="source">Source</label>
-          <Select id="source" :modelValue="current.source || null" :options="sourceOptions" optionLabel="label" optionValue="value" placeholder="All sources" showClear size="small" @update:modelValue="(value: string | null) => update({ source: value ?? '' })" />
+        <div class="group" v-if="sourceFacets.length > 0 || current.source">
+          <span class="group-label">Source</span>
+          <div class="facet-rows">
+            <button type="button" class="facet-row" :class="{ active: current.source === '' }" @click="update({ source: '', path: '' })">
+              <span class="name">All sources</span>
+              <span class="count">{{ sourceTotal.toLocaleString() }}</span>
+            </button>
+            <button
+              v-for="facet in sourceFacets"
+              :key="facet.name"
+              type="button"
+              class="facet-row"
+              :class="{ active: current.source === facet.name }"
+              @click="update({ source: current.source === facet.name ? '' : facet.name, path: '' })"
+            >
+              <span class="name">{{ facet.name }}</span>
+              <span class="count">{{ facet.count.toLocaleString() }}</span>
+            </button>
+          </div>
         </div>
         <div class="group">
           <label for="category">Category</label>
@@ -321,6 +338,10 @@ function folderLabel(folder: string): string {
             </template>
           </div>
         </div>
+        <div class="group">
+          <label for="sort">Sort</label>
+          <Select id="sort" :modelValue="current.sort" :options="sortOptions" optionLabel="label" optionValue="value" size="small" @update:modelValue="(value: string) => update({ sort: value, order: '' })" />
+        </div>
         <div class="group" v-if="tagFacets.length > 0 || current.tag">
           <span class="group-label">Tags</span>
           <div class="chips">
@@ -329,10 +350,6 @@ function folderLabel(folder: string): string {
               <button v-if="facet.name !== current.tag" type="button" class="chip" @click="update({ tag: facet.name })">{{ facet.name }} {{ facet.count }}</button>
             </template>
           </div>
-        </div>
-        <div class="group">
-          <label for="sort">Sort</label>
-          <Select id="sort" :modelValue="current.sort" :options="sortOptions" optionLabel="label" optionValue="value" size="small" @update:modelValue="(value: string) => update({ sort: value, order: '' })" />
         </div>
         <Button v-if="hasFilters" label="Reset filters" severity="secondary" outlined size="small" @click="reset" />
       </aside>
